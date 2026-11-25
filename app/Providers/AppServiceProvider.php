@@ -27,12 +27,17 @@ class AppServiceProvider extends ServiceProvider
         RateLimiter::for('register', function (Request $request) {
             return Limit::perMinute(6)->by($request->ip());
         });
-        
+
         RateLimiter::for('login', function (Request $request) {
             $email = Str::lower((string) $request->input('email'));
 
             return Limit::perMinute(5)
                 ->by($email . '|' . $request->ip());
+        });
+
+        RateLimiter::for('pharmacy-register', function (Request $request) {
+            return Limit::perMinute(3)
+                ->by($request->user()?->id . '|' . $request->ip());
         });
     }
 }

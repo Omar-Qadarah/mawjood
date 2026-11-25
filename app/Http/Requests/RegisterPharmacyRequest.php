@@ -61,6 +61,10 @@ class RegisterPharmacyRequest extends FormRequest
             ],
 
             'opening_hours' => ['sometimes', 'nullable', 'array'],
+            'status' => ['prohibited'],
+            'role' => ['prohibited'],
+            'user_id' => ['prohibited'],
+            'pharmacy_id' => ['prohibited'],
         ];
     }
 }
