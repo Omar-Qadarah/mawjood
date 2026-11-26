@@ -1,30 +1,40 @@
 <?php
 
-use App\Http\Controllers\Api\V1\Auth\RegisterController;
 use Illuminate\Support\Facades\Route;
+
+use App\Http\Controllers\Api\V1\Auth\RegisterController;
 use App\Http\Controllers\Api\V1\Auth\LoginController;
 use App\Http\Controllers\Api\V1\Auth\LogoutController;
 use App\Http\Controllers\Api\V1\Auth\MeController;
-use App\Http\Controllers\Api\V1\Pharmacy\RegisterPharmacyController;
+use App\Http\Controllers\Api\V1\Pharmacy\PharmacyController;
 
+Route::prefix('v1')
+    ->name('api.v1.')
+    ->group(function () {
 
-Route::prefix('v1')->group(function () {
+        // Public authentication routes
+        Route::post('auth/register', RegisterController::class)
+            ->middleware('throttle:register')
+            ->name('auth.register');
 
-    Route::post('auth/register', RegisterController::class)
-        ->middleware('throttle:register');
+        Route::post('auth/login', LoginController::class)
+            ->middleware('throttle:login')
+            ->name('auth.login');
 
-    Route::post('auth/login', LoginController::class)
-        ->middleware('throttle:login');
+        // Authenticated routes
+        Route::middleware('auth:sanctum')->group(function () {
 
-    Route::middleware('auth:sanctum')->group(function () {
+            Route::get('auth/me', MeController::class)
+                ->name('auth.me');
 
-        Route::get('auth/me', MeController::class);
+            Route::post('auth/logout', LogoutController::class)
+                ->name('auth.logout');
 
-        Route::post('auth/logout', LogoutController::class);
-        
-        Route::post('pharmacies', RegisterPharmacyController::class)
-            ->middleware('throttle:pharmacy-register');
+            // Pharmacy
+            Route::post('pharmacies', [PharmacyController::class, 'store'])
+                ->middleware('throttle:pharmacy-register')
+                ->name('pharmacies.store');
+
+        });
 
     });
-
-});
