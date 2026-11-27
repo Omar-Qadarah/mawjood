@@ -4,7 +4,8 @@ export const places = JSON.parse(settings.places);
 
 export async function api(path, { method = 'GET', body } = {}) {
     const headers = { Accept: 'application/json' };
-    if (body !== undefined) {
+    const multipart = body instanceof FormData;
+    if (body !== undefined && !multipart) {
         headers['Content-Type'] = 'application/json';
     }
     const token = document.cookie.split('; ').find((cookie) => cookie.startsWith('XSRF-TOKEN='));
@@ -14,7 +15,7 @@ export async function api(path, { method = 'GET', body } = {}) {
 
     const response = await fetch(settings.apiBase + path, {
         method, headers, credentials: 'same-origin',
-        body: body === undefined ? undefined : JSON.stringify(body),
+        body: multipart || body === undefined ? body : JSON.stringify(body),
     });
     const result = response.status === 204 ? null : await response.json().catch(() => null);
     if (!response.ok) {

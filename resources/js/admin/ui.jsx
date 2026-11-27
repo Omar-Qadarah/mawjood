@@ -1,9 +1,10 @@
 import { useEffect, useRef } from 'react';
+import logo from './mawjood-logo.png';
 
 export function Icon({ name, size = 19 }) {
     const paths = {
         overview: 'M3 3h7v7H3zm11 0h7v7h-7zM3 14h7v7H3zm11 0h7v7h-7z',
-        pharmacies: 'M3 21h18M5 21V8l7-4 7 4v13M12 10v6m-3-3h6',
+        pharmacies: 'M4 12h16c-.8 3.2-3.7 5.5-8 5.5S4.8 15.2 4 12zM12 17.5V21m-4 0h8M12 12c0-1.6 1-2.2 2.4-2.9 1.3-.6 2.1-1.5 1.9-2.8-.2-1.8-2-2.9-3.8-2.5-1 .2-1.8.9-2.2 1.8L9 6l1.6.7M13 5.5h.05',
         medicines: 'M18.4 5.6a4.5 4.5 0 0 1 0 6.4l-6.4 6.4a4.5 4.5 0 0 1-6.4-6.4L12 5.6a4.5 4.5 0 0 1 6.4 0zM8.8 8.8l6.4 6.4',
         inventory: 'M3 7l9-4 9 4v10l-9 4-9-4zm0 0 9 4 9-4M12 11v10M7.5 5l9 4',
         reservations: 'M8 4H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2h-2M8 2h8v5H8zM8 12h8m-8 5h5',
@@ -11,6 +12,8 @@ export function Icon({ name, size = 19 }) {
         arrow: 'M5 12h14m-6-6 6 6-6 6',
         location: 'M20 10c0 5-8 11-8 11S4 15 4 10a8 8 0 1 1 16 0zM12 12a2 2 0 1 0 0-4 2 2 0 0 0 0 4z',
         search: 'm20 20-4-4m2-5a7 7 0 1 1-14 0 7 7 0 0 1 14 0z',
+        profile: 'M10 3h4l.7 2.6 2 .9 2.5-1.2 2 3.4-1.8 1.9v2.8l1.8 1.9-2 3.4-2.5-1.2-2 .9L14 21h-4l-.7-2.6-2-.9-2.5 1.2-2-3.4 1.8-1.9v-2.8L2.8 8.7l2-3.4 2.5 1.2 2-.9L10 3zM15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0z',
+        chevron: 'm6 9 6 6 6-6',
         logout: 'M10 17l5-5-5-5m5 5H3m12-8h5a1 1 0 0 1 1 1v14a1 1 0 0 1-1 1h-5',
         close: 'm6 6 12 12M18 6 6 18',
         plus: 'M12 5v14M5 12h14',
@@ -19,7 +22,7 @@ export function Icon({ name, size = 19 }) {
 }
 
 export function Brand() {
-    return <div className="brand"><span className="brand-mark"><Icon name="pharmacies" size={23} /></span><div>Mawjood<small>Administration</small></div></div>;
+    return <div className="brand"><img className="brand-mark" src={logo} alt="" width="41" height="41" /><div>Mawjood<small>Administration</small></div></div>;
 }
 
 export function Modal({ title, onClose, children, wide = false }) {

@@ -1,7 +1,9 @@
 <?php
 
 use App\Http\Controllers\Api\V1\Admin\ActiveIngredientController;
+use App\Http\Controllers\Api\V1\Admin\AdminPasswordController;
 use App\Http\Controllers\Api\V1\Admin\AdminPharmacyController;
+use App\Http\Controllers\Api\V1\Admin\AdminProfileController;
 use App\Http\Controllers\Api\V1\Admin\AdminReservationController;
 use App\Http\Controllers\Api\V1\Admin\CustomerController;
 use App\Http\Controllers\Api\V1\Admin\DashboardSummaryController;
@@ -47,6 +49,10 @@ Route::prefix('v1')
             ->prefix('admin')
             ->name('admin.')
             ->group(function () {
+                Route::post('profile', [AdminProfileController::class, 'update'])->name('profile.update');
+                Route::get('profile/avatar', [AdminProfileController::class, 'avatar'])->name('profile.avatar');
+                Route::patch('profile/password', AdminPasswordController::class)
+                    ->middleware('throttle:10,1')->name('profile.password');
                 Route::get('pharmacy-sites', PharmacyMapController::class)->name('pharmacy-sites');
                 Route::apiResource('pharmacies', AdminPharmacyController::class);
                 Route::apiResource('customers', CustomerController::class);

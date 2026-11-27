@@ -8,6 +8,7 @@ import { Medicines } from './Medicines';
 import { Inventory } from './Inventory';
 import { Reservations } from './Reservations';
 import { RegistrationTrend } from './RegistrationTrend';
+import { ProfileSettings } from './ProfileSettings';
 import { Sidebar, sections } from './Sidebar';
 import './admin.css';
 
@@ -163,6 +164,8 @@ function App() {
         content = <Inventory />;
     } else if (tab === 'reservations') {
         content = <Reservations />;
+    } else if (tab === 'profile') {
+        content = <ProfileSettings user={user} onUpdated={setUser} />;
     } else {
         content = <Directory key={tab} entity={tab} onChanged={() => setMessage(null)} onDetails={openDetails} />;
     }
