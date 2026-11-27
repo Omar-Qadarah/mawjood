@@ -14,12 +14,14 @@ use App\Http\Controllers\Api\V1\Auth\LogoutController;
 use App\Http\Controllers\Api\V1\Auth\MeController;
 use App\Http\Controllers\Api\V1\Auth\RegisterController;
 use App\Http\Controllers\Api\V1\Medicine\MedicineSearchController;
+use App\Http\Controllers\Api\V1\Medicine\SmartMedicineSearchController;
 use App\Http\Controllers\Api\V1\Pharmacy\PharmacyController;
 use App\Http\Controllers\Api\V1\Prescription\PrescriptionController;
 use App\Http\Controllers\Api\V1\Reservation\ReservationController;
 use Illuminate\Support\Facades\Route;
 
 Route::pattern('medicine', '[0-9]+');
+Route::pattern('inventoryItem', '[0-9]+');
 Route::pattern('activeIngredient', '[0-9]+');
 
 Route::prefix('v1')
@@ -37,6 +39,9 @@ Route::prefix('v1')
 
         Route::get('medicines/search', MedicineSearchController::class)->name('medicines.search');
 
+        Route::post('medicines/smart-search', SmartMedicineSearchController::class)
+            ->middleware('throttle:smart-search')->name('medicines.smart-search');
+
         // Administrator routes
         Route::middleware(['auth:sanctum', 'admin'])
             ->prefix('admin')
@@ -48,9 +53,8 @@ Route::prefix('v1')
                 Route::apiResource('medicines', MedicineController::class);
                 Route::apiResource('active-ingredients', ActiveIngredientController::class)
                     ->parameters(['active-ingredients' => 'activeIngredient']);
-                Route::get('inventory-items', [InventoryController::class, 'index'])->name('inventory-items.index');
-                Route::get('inventory-items/{inventoryItem}', [InventoryController::class, 'show'])
-                    ->whereNumber('inventoryItem')->name('inventory-items.show');
+                Route::apiResource('inventory-items', InventoryController::class)
+                    ->parameters(['inventory-items' => 'inventoryItem']);
                 Route::post('inventory-items/{inventoryItem}/receipts', [StockMovementController::class, 'receive'])
                     ->whereNumber('inventoryItem')->name('inventory-items.receipts.store');
                 Route::post('inventory-items/{inventoryItem}/batches/{batch}/adjustments', [StockMovementController::class, 'adjust'])

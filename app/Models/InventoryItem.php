@@ -22,6 +22,19 @@ class InventoryItem extends Model
         ];
     }
 
+    public function scopePublicMedicineSearch(Builder $query, string $term, string $date): Builder
+    {
+        return $query
+            ->with(['medicine', 'pharmacy'])
+            ->where('is_listed', true)
+            ->whereHas('pharmacy', fn (Builder $query) => $query->searchable())
+            ->whereHas('medicine', fn (Builder $query) => $query->matchingCatalogSearch($term))
+            ->whereHas('batches', fn (Builder $query) => $query->eligibleOn($date)
+                ->whereColumn('quantity_on_hand', '>', 'quantity_held'))
+            ->withAvailableQuantity($date)
+            ->orderBy('id');
+    }
+
     public function scopeWithAvailableQuantity(Builder $query, string $date): Builder
     {
         return $query->withSum(

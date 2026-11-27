@@ -3,11 +3,16 @@
 namespace App\Http\Controllers\Api\V1\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Api\V1\Admin\SaveInventoryListingRequest;
 use App\Http\Resources\Api\V1\Admin\InventoryItemResource;
 use App\Models\InventoryItem;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\QueryException;
+use Illuminate\Database\UniqueConstraintViolationException;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
+use Illuminate\Http\Response;
 
 class InventoryController extends Controller
 {
@@ -44,6 +49,39 @@ class InventoryController extends Controller
         }
 
         return InventoryItemResource::collection($items->orderBy('pharmacy_id')->orderBy('id')->paginate(10)->withQueryString());
+    }
+
+    public function store(SaveInventoryListingRequest $request): JsonResponse
+    {
+        try {
+            $item = InventoryItem::create($request->validated());
+        } catch (UniqueConstraintViolationException) {
+            abort(409, 'This pharmacy already has a listing for that medicine.');
+        }
+
+        return $this->show($item)->response()->setStatusCode(201);
+    }
+
+    public function update(SaveInventoryListingRequest $request, InventoryItem $inventoryItem): InventoryItemResource
+    {
+        $inventoryItem->update($request->safe()->only(['selling_price', 'is_listed']));
+
+        return $this->show($inventoryItem);
+    }
+
+    public function destroy(InventoryItem $inventoryItem): Response
+    {
+        try {
+            $inventoryItem->delete();
+        } catch (QueryException $exception) {
+            if ((int) ($exception->errorInfo[1] ?? 0) !== 1451) {
+                throw $exception;
+            }
+
+            abort(409, 'This listing has stock or reservation history. You can unlist it instead.');
+        }
+
+        return response()->noContent();
     }
 
     public function show(InventoryItem $inventoryItem): InventoryItemResource

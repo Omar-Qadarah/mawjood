@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { api } from './api';
+import { InventoryListingForm } from './InventoryListingForm';
 import { StockMovementForm } from './StockMovementForm';
 import { Details, Field, Modal, Notice, Status } from './ui';
 
@@ -85,6 +86,8 @@ export function Inventory() {
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(true);
     const [selected, setSelected] = useState(null);
+    const [listingForm, setListingForm] = useState(null);
+    const [notice, setNotice] = useState('');
     const [revision, setRevision] = useState(0);
 
     useEffect(() => {
@@ -127,7 +130,10 @@ export function Inventory() {
 
     return <section aria-labelledby="inventory-heading">
         <div className="page-heading"><div><h1 id="inventory-heading">Inventory</h1>
-            <p>Browse pharmacy stock. Availability counts active, unexpired batches after held quantities.</p></div></div>
+            <p>Browse pharmacy stock. Availability counts active, unexpired batches after held quantities.</p></div>
+            <button className="button primary" type="button" disabled={!pharmacies?.length} onClick={() => setListingForm({})}>Add stock listing</button>
+        </div>
+        <Notice>{notice}</Notice>
         <Notice error>{error}</Notice><Notice error>{pharmacyError}</Notice>
         <div className="panel directory" aria-busy={loading}>
             <div className="table-filters">
@@ -151,8 +157,11 @@ export function Inventory() {
                     <td>{item.selling_price} {item.medicine.currency}</td>
                     <td><Status status={item.is_listed ? 'listed' : 'unlisted'} /></td>
                     <td>{item.available_quantity}</td><td>{item.batches_count}</td>
-                    <td><button className="button small secondary" type="button" onClick={() => setSelected(item)}
-                        aria-label={'View batches for ' + item.medicine.name_en + ' at ' + item.pharmacy.name_en}>View batches</button></td>
+                    <td><div className="row-actions"><button className="button small secondary" type="button" onClick={() => setSelected(item)}
+                        aria-label={'View batches for ' + item.medicine.name_en + ' at ' + item.pharmacy.name_en}>View batches</button>
+                        <button className="button small secondary" type="button" onClick={() => setListingForm({ item })}
+                            aria-label={'Edit listing for ' + item.medicine.name_en + ' at ' + item.pharmacy.name_en}>Edit</button>
+                    </div></td>
                 </tr>) : <tr><td className="empty" colSpan="7">{emptyText}</td></tr>}</tbody>
             </table></div>
             {!loading && !error && result?.meta && <footer className="pagination">
@@ -161,6 +170,12 @@ export function Inventory() {
                 <button className="button secondary small" onClick={() => changeFilter({ page: filter.page + 1 })} disabled={filter.page >= result.meta.last_page}>Next</button>
             </footer>}
         </div>
+        {listingForm && <InventoryListingForm item={listingForm.item} pharmacies={pharmacies ?? []} pharmacy={filter.pharmacy}
+            onClose={() => setListingForm(null)} onSaved={(message) => {
+                setListingForm(null);
+                setNotice(message);
+                changeFilter({});
+            }} />}
         {selected && <StockDetails item={selected} onClose={() => setSelected(null)}
             onChanged={() => setRevision((value) => value + 1)} />}
     </section>;

@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Enums\InventoryBatchStatus;
 use App\Enums\PlatformRole;
 use App\Models\InventoryItem;
+use App\Models\Medicine;
 use App\Models\Pharmacy;
 use App\Models\User;
 use Database\Seeders\DemoInventorySeeder;
@@ -82,6 +83,30 @@ class AdminInventoryTest extends TestCase
             ->assertJsonPath('data.batches.0.status', 'quarantined')
             ->assertJsonPath('data.batches.0.available_quantity', 0);
         $this->getJson(self::ENDPOINT.'/999999')->assertNotFound();
+    }
+
+    public function test_admin_manages_inventory_listings_without_removing_stock_history(): void
+    {
+        $this->actingAs($this->seedInventory(), 'web');
+        $existing = InventoryItem::query()->firstOrFail();
+        $medicine = Medicine::query()->whereDoesntHave('inventoryItems')->firstOrFail();
+        $payload = [
+            'pharmacy_id' => $existing->pharmacy_id, 'medicine_id' => $medicine->id,
+            'selling_price' => '1.750', 'is_listed' => true,
+        ];
+        $created = $this->postJson(self::ENDPOINT, $payload)->assertCreated()
+            ->assertJsonPath('data.selling_price', '1.750')
+            ->assertJsonPath('data.available_quantity', 0);
+        $id = $created->json('data.id');
+        $this->postJson(self::ENDPOINT, $payload)->assertConflict();
+        $this->patchJson(self::ENDPOINT.'/'.$id, ['selling_price' => '1.2345', 'is_listed' => false])
+            ->assertUnprocessable()->assertJsonValidationErrors('selling_price');
+        $this->patchJson(self::ENDPOINT.'/'.$id, ['selling_price' => '2.125', 'is_listed' => false])
+            ->assertOk()->assertJsonPath('data.is_listed', false)->assertJsonPath('data.selling_price', '2.125');
+        $this->deleteJson(self::ENDPOINT.'/'.$existing->id)->assertConflict();
+        $this->assertDatabaseHas('inventory_items', ['id' => $existing->id]);
+        $this->deleteJson(self::ENDPOINT.'/'.$id)->assertNoContent();
+        $this->getJson(self::ENDPOINT.'/'.$id)->assertNotFound();
     }
 
     public function test_customer_cannot_access_inventory_list_or_batch_details(): void
