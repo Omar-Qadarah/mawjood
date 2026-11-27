@@ -8,9 +8,9 @@ import { Medicines } from './Medicines';
 import { Inventory } from './Inventory';
 import { Reservations } from './Reservations';
 import { RegistrationTrend } from './RegistrationTrend';
+import { Sidebar, sections } from './Sidebar';
 import './admin.css';
 
-const sections = { overview: 'Overview', pharmacies: 'Pharmacies', medicines: 'Medicines', inventory: 'Inventory', reservations: 'Reservations', customers: 'Customers' };
 const currentSection = () => Object.hasOwn(sections, location.hash.slice(1)) ? location.hash.slice(1) : 'overview';
 
 function Login({ onLogin, message }) {
@@ -168,13 +168,7 @@ function App() {
     }
 
     return <div className="workspace">
-        <aside className="sidebar"><Brand />
-            <nav aria-label="Dashboard">{Object.entries(sections).map(([key, title]) =>
-                <a key={key} href={'#' + key} aria-current={tab === key ? 'page' : undefined}><Icon name={key} />{title}</a>)}</nav>
-            <div className="sidebar-account"><span className="avatar">{user.name?.slice(0, 1).toUpperCase() ?? 'A'}</span>
-                <span>{user.name}<small>Administrator</small></span>
-                <button className="icon-button" type="button" onClick={logout} aria-label="Log out" title="Log out"><Icon name="logout" /></button></div>
-        </aside>
+        <Sidebar user={user} tab={tab} onLogout={logout} />
         <main className="content">
             <Notice error={message?.error}>{message?.text}</Notice>
             {content}
