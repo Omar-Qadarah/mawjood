@@ -846,11 +846,6 @@ td strong,
         grid-template-columns: 160px minmax(0, 1fr);
     }
 }
-@media (max-width: 900px) {
-    .overview-grid {
-        grid-template-columns: minmax(0, 1fr);
-    }
-}
 @media (max-width: 700px) {
     .workspace {
         display: block;
@@ -1014,6 +1009,11 @@ td strong,
     grid-template-columns: minmax(0, 1.72fr) minmax(285px, 1fr);
     gap: 14px;
 }
+@media (max-width: 900px) {
+    .overview-grid {
+        grid-template-columns: minmax(0, 1fr);
+    }
+}
 .overview-grid .panel {
     border-radius: 14px;
 }
@@ -1100,11 +1100,19 @@ td strong,
     font-variant-numeric: tabular-nums;
 }
 .trend-plot {
+    --trend-label-height: 24px;
     display: grid;
     grid-template-columns: auto minmax(0, 1fr);
-    grid-template-rows: minmax(116px, 1fr) 24px;
+    grid-template-rows: minmax(116px, 1fr) var(--trend-label-height);
     flex: 1;
     column-gap: 9px;
+}
+.trend-plot-grouped {
+    --trend-label-height: 38px;
+}
+.trend-plot-grouped .trend-label {
+    white-space: normal;
+    line-height: 1.2;
 }
 .trend-axis,
 .trend-gridlines {
@@ -1133,12 +1141,12 @@ td strong,
 .trend-chart {
     grid-area: 1 / 2 / 3;
     display: grid;
-    grid-template-columns: repeat(var(--chart-days), minmax(0, 1fr));
+    grid-template-columns: repeat(var(--chart-columns), minmax(0, 1fr));
     column-gap: clamp(1px, 0.35vw, 5px);
 }
 .trend-column {
     display: grid;
-    grid-template-rows: minmax(116px, 1fr) 24px;
+    grid-template-rows: minmax(116px, 1fr) var(--trend-label-height);
     min-width: 0;
     text-align: center;
 }
