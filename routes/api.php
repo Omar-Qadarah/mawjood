@@ -3,6 +3,7 @@
 use App\Http\Controllers\Api\V1\Admin\AdminPharmacyController;
 use App\Http\Controllers\Api\V1\Admin\CustomerController;
 use App\Http\Controllers\Api\V1\Admin\DashboardSummaryController;
+use App\Http\Controllers\Api\V1\Admin\MedicineController;
 use App\Http\Controllers\Api\V1\Admin\PharmacyMapController;
 use App\Http\Controllers\Api\V1\Auth\LoginController;
 use App\Http\Controllers\Api\V1\Auth\LogoutController;
@@ -32,6 +33,9 @@ Route::prefix('v1')
                 Route::get('pharmacy-sites', PharmacyMapController::class)->name('pharmacy-sites');
                 Route::apiResource('pharmacies', AdminPharmacyController::class);
                 Route::apiResource('customers', CustomerController::class);
+                Route::get('medicines', [MedicineController::class, 'index'])->name('medicines.index');
+                Route::get('medicines/{medicine}', [MedicineController::class, 'show'])
+                    ->whereNumber('medicine')->name('medicines.show');
                 Route::get('dashboard/summary', DashboardSummaryController::class)
                     ->name('dashboard.summary');
             });

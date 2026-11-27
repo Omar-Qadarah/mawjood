@@ -4,9 +4,10 @@ import { api, signIn } from './api';
 import { Brand, Field, Icon, Notice, Status } from './ui';
 import { Directory, RecordDetails } from './Directory';
 import { JordanMap } from './JordanMap';
+import { Medicines } from './Medicines';
 import './admin.css';
 
-const sections = { overview: 'Overview', pharmacies: 'Pharmacies', customers: 'Customers' };
+const sections = { overview: 'Overview', pharmacies: 'Pharmacies', medicines: 'Medicines', customers: 'Customers' };
 const currentSection = () => Object.hasOwn(sections, location.hash.slice(1)) ? location.hash.slice(1) : 'overview';
 
 function Login({ onLogin, message }) {
@@ -142,6 +143,15 @@ function App() {
     if (user === undefined) return <main className="loading" role="status">Loading Mawjood…</main>;
     if (!user) return <Login message={message?.text} onLogin={(admin) => { setMessage(null); setUser(admin); }} />;
 
+    let content;
+    if (tab === 'overview') {
+        content = <Overview onDetails={openDetails} />;
+    } else if (tab === 'medicines') {
+        content = <Medicines />;
+    } else {
+        content = <Directory key={tab} entity={tab} onChanged={() => setMessage(null)} onDetails={openDetails} />;
+    }
+
     return <div className="workspace">
         <aside className="sidebar"><Brand />
             <nav aria-label="Dashboard">{Object.entries(sections).map(([key, title]) =>
@@ -152,8 +162,7 @@ function App() {
         </aside>
         <main className="content">
             <Notice error={message?.error}>{message?.text}</Notice>
-            {tab === 'overview' ? <Overview onDetails={openDetails} />
-                : <Directory key={tab} entity={tab} onChanged={() => setMessage(null)} onDetails={openDetails} />}
+            {content}
         </main>
         {detail && <RecordDetails {...detail} onClose={() => setDetail(null)} />}
     </div>;
