@@ -3,6 +3,7 @@
 use App\Http\Controllers\Api\V1\Admin\AdminPharmacyController;
 use App\Http\Controllers\Api\V1\Admin\CustomerController;
 use App\Http\Controllers\Api\V1\Admin\DashboardSummaryController;
+use App\Http\Controllers\Api\V1\Admin\PharmacyMapController;
 use App\Http\Controllers\Api\V1\Auth\LoginController;
 use App\Http\Controllers\Api\V1\Auth\LogoutController;
 use App\Http\Controllers\Api\V1\Auth\MeController;
@@ -28,6 +29,7 @@ Route::prefix('v1')
             ->prefix('admin')
             ->name('admin.')
             ->group(function () {
+                Route::get('pharmacy-sites', PharmacyMapController::class)->name('pharmacy-sites');
                 Route::apiResource('pharmacies', AdminPharmacyController::class);
                 Route::apiResource('customers', CustomerController::class);
                 Route::get('dashboard/summary', DashboardSummaryController::class)

@@ -19,6 +19,22 @@ class AdminManagementTest extends TestCase
         return User::factory()->create(['platform_role' => PlatformRole::Admin, 'is_active' => true]);
     }
 
+    public function test_weekly_hours_and_language_rules(): void
+    {
+        $this->actingAs($this->admin(), 'web');
+        $payload = $this->pharmacyData();
+        $slot = ['day' => 'sunday', 'opens_at' => '09:00', 'closes_at' => '17:00'];
+
+        $id = $this->postJson('/api/v1/admin/pharmacies', $payload + ['opening_hours' => [$slot]])
+            ->assertCreated()->assertJsonPath('data.opening_hours.0', $slot)->json('data.id');
+        $this->getJson('/api/v1/admin/pharmacy-sites')->assertOk()->assertJsonPath('data.0.id', $id);
+        $this->patchJson('/api/v1/admin/pharmacies/'.$id, ['name_ar' => 'English', 'name_en' => 'صيدلية'])
+            ->assertUnprocessable()->assertJsonValidationErrors(['name_ar', 'name_en']);
+        $this->patchJson('/api/v1/admin/pharmacies/'.$id, ['opening_hours' => [
+            $slot, ['day' => 'sunday', 'opens_at' => '16:00', 'closes_at' => '18:00'],
+        ]])->assertUnprocessable()->assertJsonValidationErrors('opening_hours');
+    }
+
     private function pharmacyData(): array
     {
         return [
