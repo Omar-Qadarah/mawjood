@@ -3,6 +3,7 @@
 use App\Http\Controllers\Api\V1\Admin\AdminPharmacyController;
 use App\Http\Controllers\Api\V1\Admin\CustomerController;
 use App\Http\Controllers\Api\V1\Admin\DashboardSummaryController;
+use App\Http\Controllers\Api\V1\Admin\InventoryController;
 use App\Http\Controllers\Api\V1\Admin\MedicineController;
 use App\Http\Controllers\Api\V1\Admin\PharmacyMapController;
 use App\Http\Controllers\Api\V1\Auth\LoginController;
@@ -36,6 +37,9 @@ Route::prefix('v1')
                 Route::get('medicines', [MedicineController::class, 'index'])->name('medicines.index');
                 Route::get('medicines/{medicine}', [MedicineController::class, 'show'])
                     ->whereNumber('medicine')->name('medicines.show');
+                Route::get('inventory-items', [InventoryController::class, 'index'])->name('inventory-items.index');
+                Route::get('inventory-items/{inventoryItem}', [InventoryController::class, 'show'])
+                    ->whereNumber('inventoryItem')->name('inventory-items.show');
                 Route::get('dashboard/summary', DashboardSummaryController::class)
                     ->name('dashboard.summary');
             });
