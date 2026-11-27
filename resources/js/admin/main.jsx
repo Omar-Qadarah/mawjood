@@ -7,6 +7,7 @@ import { JordanMap } from './JordanMap';
 import { Medicines } from './Medicines';
 import { Inventory } from './Inventory';
 import { Reservations } from './Reservations';
+import { RegistrationTrend } from './RegistrationTrend';
 import './admin.css';
 
 const sections = { overview: 'Overview', pharmacies: 'Pharmacies', medicines: 'Medicines', inventory: 'Inventory', reservations: 'Reservations', customers: 'Customers' };
@@ -71,23 +72,18 @@ function Overview({ onDetails }) {
     ];
     const statuses = ['active', 'pending', 'suspended'];
     const total = summary?.counts.total ?? 0;
+    const activeShare = total ? (summary.counts.active / total) * 100 : 0;
+    const pendingEnd = total ? activeShare + (summary.counts.pending / total) * 100 : 0;
 
     return <section>
-        <div className="page-heading"><div><h1>Dashboard overview</h1><p>Monitor the pharmacy directory and customer activity.</p></div>
+        <div className="page-heading"><div><h1>Dashboard overview</h1><p>Pharmacy network and customer activity</p></div>
             <a className="button secondary" href="#pharmacies">Manage pharmacies <Icon name="arrow" /></a></div>
         <Notice error>{error}</Notice>
         <div className="overview-grid"><div className="overview-main">
             <div className="stats-grid">{stats.map(([title, value, icon]) => <div className="stat" key={title}>
                 <span className="stat-icon"><Icon name={icon} /></span><div><p>{title}</p><strong>{value ?? '—'}</strong></div>
             </div>)}</div>
-            <section className="panel status-panel"><header className="panel-header"><div><h2>Pharmacy status</h2><p>Listings by review status</p></div></header>
-                <div className="status-chart">{statuses.map((status) => {
-                    const value = summary?.counts[status] ?? 0;
-                    return <div className="chart-row" key={status}><span>{status}</span><div className="bar-track">
-                        <div className={'bar bar-' + status} style={{ width: (total ? (value / total) * 100 : 0) + '%' }} />
-                    </div><strong>{summary ? value : '—'}</strong></div>;
-                })}</div>
-            </section>
+            <RegistrationTrend registrations={summary?.registrations} />
             <section className="panel recent-panel"><header className="panel-header"><div><h2>Recently added pharmacies</h2><p>Latest records in the directory</p></div>
                 <a className="text-button" href="#pharmacies">View all</a></header>
                 <div className="table-scroll"><table><thead><tr><th scope="col">Pharmacy</th><th scope="col">Added</th><th scope="col">Status</th></tr></thead>
@@ -99,6 +95,19 @@ function Overview({ onDetails }) {
             </section>
         </div><aside className="overview-side">
             <JordanMap sites={sites} onSite={(id) => onDetails('pharmacies', id)} />
+            <section className="panel status-panel"><header className="panel-header"><div><h2>Pharmacy status</h2><p>Listings by review status</p></div></header>
+                <div className="status-layout">
+                    <div className="status-ring" role="img" aria-label={Math.round(activeShare) + '% active'}
+                        style={{ '--active-share': activeShare + '%', '--pending-end': pendingEnd + '%' }}>
+                        <span><strong>{summary ? Math.round(activeShare) + '%' : '—'}</strong><small>Active</small></span>
+                    </div>
+                    <div className="status-chart">{statuses.map((status) => {
+                    const value = summary?.counts[status] ?? 0;
+                    return <div className="chart-row" key={status}><span>{status}</span><div className="bar-track">
+                        <div className={'bar bar-' + status} style={{ width: (total ? (value / total) * 100 : 0) + '%' }} />
+                    </div><strong>{summary ? value : '—'}</strong></div>;
+                })}</div></div>
+            </section>
             <section className="panel activity-panel"><header className="panel-header"><div><h2>Recent updates</h2><p>Latest pharmacy changes</p></div></header>
                 {summary?.recent_activity.length ? <ul className="activity-list">{summary.recent_activity.map((pharmacy) => <li key={pharmacy.id}>
                     <div><button className="text-button" onClick={() => onDetails('pharmacies', pharmacy.id)}>{pharmacy.name_en}</button><small>{new Date(pharmacy.updated_at).toLocaleString()}</small></div>

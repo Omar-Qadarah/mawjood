@@ -20,7 +20,19 @@ class DashboardSummaryController extends Controller
             ->groupBy('status')
             ->pluck('total', 'status');
 
+        $today = today();
+        $firstDay = $today->copy()->subDays(29);
+        $dailyRegistrations = Pharmacy::query()->where('created_at', '>=', $firstDay)
+            ->where('created_at', '<', $today->copy()->addDay())
+            ->selectRaw('DATE(created_at) AS day, COUNT(*) AS total')
+            ->groupByRaw('DATE(created_at)')->pluck('total', 'day');
+
         return response()->json([
+            'registrations' => array_map(function (int $offset) use ($firstDay, $dailyRegistrations): array {
+                $day = $firstDay->copy()->addDays($offset)->toDateString();
+
+                return ['date' => $day, 'total' => (int) $dailyRegistrations->get($day, 0)];
+            }, range(0, 29)),
             'counts' => [
                 'total' => (int) $totals->sum(),
                 'pending' => (int) $totals->get(PharmacyStatus::Pending->value, 0),

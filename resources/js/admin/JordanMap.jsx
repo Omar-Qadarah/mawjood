@@ -28,8 +28,8 @@ function locateSite(site) {
     return region ? regionName(region) : null;
 }
 
-const regionStyle = { color: '#fff', weight: 1.5, fillColor: '#dce8e5', fillOpacity: 1 };
-const highlighted = { ...regionStyle, fillColor: '#5ba997' };
+const regionStyle = { color: '#fff', weight: 1.5, fillColor: '#e3e6f0', fillOpacity: 1 };
+const highlighted = { ...regionStyle, fillColor: '#8061d2' };
 
 export function JordanMap({ sites, onSite }) {
     const host = useRef(null);
@@ -85,13 +85,13 @@ export function JordanMap({ sites, onSite }) {
         if (!visibleRegion) return;
         sites.filter((site) => locateSite(site) === visibleRegion).forEach((site) => {
             L.circleMarker([Number(site.latitude), Number(site.longitude)], {
-                radius: 5, color: '#fff', weight: 2, fillColor: '#153a3d', fillOpacity: 1, interactive: false,
+                radius: 5, color: '#fff', weight: 2, fillColor: '#2b2450', fillOpacity: 1, interactive: false,
             }).addTo(markers);
         });
     }, [visibleRegion, sites]);
 
     return <section className="panel map-card" aria-label="Pharmacy sites in Jordan">
-        <header className="panel-header"><div><h2>Pharmacy sites</h2><p>Jordan by governorate</p></div><span className="map-symbol"><Icon name="location" /></span></header>
+        <header className="panel-header"><div><h2>Pharmacy sites in Jordan</h2><p>Explore by governorate</p></div><span className="map-symbol"><Icon name="location" /></span></header>
         <div className="jordan-map" ref={host} aria-label="Interactive map of Jordan" />
         <div className="map-info" aria-live="polite">
             {visibleRegion ? <>
