@@ -82,7 +82,7 @@ textarea { resize: vertical; }
 .toolbar .search-field { flex: 1; max-width: 440px; }
 .toolbar .button { margin-left: auto; align-self: end; }
 .table-panel { overflow: hidden; }
-.table-scroll { overflow-x: auto; }
+.table-scroll { position: relative; overflow-x: auto; }
 table { width: 100%; border-collapse: collapse; text-align: left; }
 th, td { border-bottom: 1px solid #edf1f0; padding: 14px 16px; vertical-align: middle; }
 th { background: #f8fbfa; color: #6b8282; font-size: .74rem; letter-spacing: .06em; text-transform: uppercase; }
@@ -125,3 +125,36 @@ td strong, .secondary-text { display: block; }
 .summary-counts dd { margin: .25rem 0 0; font-size: 1.5rem; font-weight: 700; }
 .recent-pharmacies { list-style: none; margin: 0; padding: 0; }
 .recent-pharmacies li { display: flex; flex-wrap: wrap; justify-content: space-between; gap: .25rem 1rem; padding: .5rem 0; }
+
+.admin-shell { width: min(1440px, calc(100% - 40px)); }
+.admin-workspace { display: grid; grid-template-columns: 180px minmax(0, 1fr); align-items: start; gap: 24px; }
+.admin-sidebar { position: sticky; top: 20px; border-radius: 14px; background: #15383a; padding: 12px; }
+.admin-sidebar nav { display: grid; gap: 5px; }
+.admin-sidebar a { border-radius: 8px; color: #e1efee; padding: 10px 12px; text-decoration: none; font-weight: 650; }
+.admin-sidebar a:hover, .admin-sidebar a[aria-current="page"] { background: #e2f4ef; color: #15383a; }
+.admin-content h2 { margin-top: 0; }
+.toolbar { flex-wrap: wrap; }
+.toolbar label { min-width: 120px; }
+.toolbar .search-field { min-width: min(230px, 100%); }
+.form-grid .check-label { display: flex; align-items: center; gap: .5rem; }
+.check-label input { width: auto; }
+fieldset { min-width: 0; margin: 0; border: 1px solid #d3dfde; border-radius: 9px; padding: 12px; }
+legend { font-weight: 700; }
+fieldset p { margin: 0 0 .6rem; color: #486366; font-size: .9rem; }
+#pharmacy-map { height: 280px; margin-bottom: .6rem; background: #e9f0ed; border-radius: 8px; }
+#pin-status { margin-top: .6rem; margin-bottom: 0; }
+#opening-slots { display: grid; gap: .5rem; }
+#opening-slots:not(:empty) { margin-bottom: .5rem; }
+.schedule-slot { display: grid; grid-template-columns: 1.2fr 1fr 1fr auto; gap: .5rem; align-items: end; }
+.details-list { display: grid; gap: .75rem; }
+.details-list div { display: grid; grid-template-columns: minmax(6rem, 1fr) 2fr; gap: .5rem; }
+.details-list dt { font-weight: 700; }
+.details-list dd { margin: 0; overflow-wrap: anywhere; }
+.notice { white-space: pre-line; }
+@media (max-width: 700px) {
+    .admin-shell { width: calc(100% - 24px); }
+    .admin-workspace { grid-template-columns: minmax(0, 1fr); gap: 16px; }
+    .admin-sidebar { position: static; }
+    .admin-sidebar nav { display: flex; flex-wrap: wrap; }
+    .schedule-slot { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}

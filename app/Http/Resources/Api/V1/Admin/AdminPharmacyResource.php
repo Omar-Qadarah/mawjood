@@ -17,12 +17,18 @@ class AdminPharmacyResource extends JsonResource
             'phone' => $this->phone,
             'email' => $this->email,
             'address' => $this->address,
+            'governorate' => $this->governorate,
             'city' => $this->city,
             'latitude' => (float) $this->latitude,
             'longitude' => (float) $this->longitude,
             'opening_hours' => $this->opening_hours,
             'status' => $this->status->value,
             'memberships_count' => $this->whenCounted('memberships'),
+            'memberships' => $this->whenLoaded('memberships', fn () => $this->memberships->map(fn ($membership) => [
+                'name' => $membership->user->name,
+                'role' => $membership->role->value,
+                'is_active' => $membership->is_active,
+            ])),
             'created_at' => $this->created_at,
             'updated_at' => $this->updated_at,
         ];

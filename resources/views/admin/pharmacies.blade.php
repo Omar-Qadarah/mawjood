@@ -6,15 +6,17 @@
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>Pharmacy administration · Mawjood</title>
     <link rel="stylesheet" href="{{ asset('css/admin.css') }}">
-    <script src="{{ asset('js/admin.js') }}" defer></script>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="anonymous">
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin="anonymous" defer></script>
+    <script type="module" src="{{ asset('js/admin.js') }}"></script>
 </head>
 <body class="admin-body">
-    <main id="admin-app" class="admin-shell" data-api-base="{{ url('/api/v1') }}">
+    <main id="admin-app" class="admin-shell" data-api-base="{{ url('/api/v1') }}" data-csrf-url="{{ url('/sanctum/csrf-cookie') }}" data-places="{{ json_encode(config('jordan'), JSON_THROW_ON_ERROR) }}">
         <header class="admin-header">
             <div>
                 <p class="admin-eyebrow">MAWJOOD · ADMIN</p>
-                <h1>Pharmacy management</h1>
-                <p class="admin-subtitle">Review and manage pharmacies in the directory.</p>
+                <h1 id="admin-heading">Mawjood administration</h1>
+                <p class="admin-subtitle">Manage the pharmacy directory and customer accounts.</p>
             </div>
             <button id="logout-button" class="button button-secondary" type="button" hidden>Log out</button>
         </header>
@@ -31,13 +33,23 @@
                 <label>Password
                     <input name="password" type="password" autocomplete="current-password" required>
                 </label>
+                <label class="check-label"><input type="checkbox" name="remember"> Remember me</label>
                 <button class="button button-primary" type="submit">Sign in</button>
             </form>
         </section>
 
-        <section id="pharmacy-panel" hidden>
-            <section class="panel dashboard-summary" aria-labelledby="dashboard-heading">
-                <h2 id="dashboard-heading">Pharmacy overview</h2>
+        <div id="workspace" class="admin-workspace" hidden>
+            <aside class="admin-sidebar">
+                <nav aria-label="Dashboard">
+                    <a href="#overview" data-admin-page="overview" aria-current="page">Overview</a>
+                    <a href="#pharmacies" data-admin-page="pharmacies">Pharmacies</a>
+                    <a href="#customers" data-admin-page="customers">Customers</a>
+                </nav>
+            </aside>
+            <div class="admin-content">
+            <section id="overview" class="panel dashboard-summary" aria-labelledby="dashboard-heading">
+
+                <h2 id="dashboard-heading">Overview</h2>
                 <p id="summary-message" role="status">Loading overview…</p>
                 <div id="summary-data" hidden>
                     <dl class="summary-counts">
@@ -45,11 +57,17 @@
                         <div><dt>Pending</dt><dd data-summary-count="pending"></dd></div>
                         <div><dt>Active</dt><dd data-summary-count="active"></dd></div>
                         <div><dt>Suspended</dt><dd data-summary-count="suspended"></dd></div>
+                        <div><dt>Customers</dt><dd id="summary-customers"></dd></div>
+                        <div><dt>Pharmacy owners</dt><dd id="summary-owners"></dd></div>
                     </dl>
                     <h3>Recently added pharmacies</h3>
                     <ul id="recent-pharmacies" class="recent-pharmacies"></ul>
+                    <h3>Recent pharmacy updates</h3>
+                    <ul id="recent-activity" class="recent-pharmacies"></ul>
                 </div>
             </section>
+            <section id="pharmacies" aria-labelledby="pharmacies-heading" hidden>
+            <h2 id="pharmacies-heading">Pharmacies</h2>
             <div class="toolbar">
                 <label class="search-field">Search
                     <input id="search-input" type="search" placeholder="Name, license, or city">
@@ -61,6 +79,12 @@
                         <option value="active">Active</option>
                         <option value="suspended">Suspended</option>
                     </select>
+                </label>
+                <label>Governorate
+                    <select id="governorate-filter"><option value="">All governorates</option></select>
+                </label>
+                <label>City
+                    <select id="city-filter" disabled><option value="">All cities</option></select>
                 </label>
                 <button id="create-button" class="button button-primary" type="button">Add pharmacy</button>
             </div>
@@ -87,10 +111,19 @@
                     <button id="next-page" class="button button-secondary" type="button">Next</button>
                 </div>
             </div>
-        </section>
+            </section>
+            @include('admin.customers')
+            </div>
+        </div>
 
+        <dialog id="pharmacy-details" class="pharmacy-dialog" aria-labelledby="pharmacy-details-heading">
+            <h2 id="pharmacy-details-heading"></h2>
+            <dl id="pharmacy-details-fields" class="details-list"></dl>
+            <form method="dialog"><button class="button button-secondary">Close</button></form>
+        </dialog>
         <dialog id="pharmacy-dialog" class="pharmacy-dialog">
             <form id="pharmacy-form" class="form-grid">
+                <p id="pharmacy-form-error" class="notice notice-error field-wide" role="alert" hidden></p>
                 <div class="dialog-heading">
                     <div>
                         <p class="admin-eyebrow">PHARMACY RECORD</p>
@@ -102,12 +135,20 @@
                 <label>Arabic name<input name="name_ar" maxlength="150" required></label>
                 <label>English name<input name="name_en" maxlength="150" required></label>
                 <label>License number<input name="license_no" maxlength="100" required></label>
-                <label>Phone<input name="phone" maxlength="20"></label>
+                <label>Jordan phone<input name="phone" type="tel" autocomplete="tel" maxlength="30" placeholder="079 123 4567"></label>
                 <label>Email<input name="email" type="email" maxlength="190"></label>
-                <label>City<input name="city" maxlength="100" required></label>
+                <label>Governorate<select name="governorate"></select></label>
+                <label>City<select name="city" required></select></label>
                 <label class="field-wide">Address<input name="address" maxlength="255" required></label>
-                <label>Latitude<input name="latitude" type="number" min="29" max="33.5" step="any" required></label>
-                <label>Longitude<input name="longitude" type="number" min="34.9" max="39.4" step="any" required></label>
+                <fieldset class="field-wide location-field">
+                    <legend>Map location</legend>
+                    <p>Click the map to place the pharmacy pin, or move the map and use its center.</p>
+                    <div id="pharmacy-map" aria-label="Pharmacy location map"></div>
+                    <button type="button" id="use-map-center" class="button button-secondary button-small">Use map center</button>
+                    <p id="pin-status" role="status">No location selected.</p>
+                    <input name="latitude" type="hidden">
+                    <input name="longitude" type="hidden">
+                </fieldset>
                 <label>Status
                     <select name="status">
                         <option value="pending">Pending</option>
@@ -115,9 +156,13 @@
                         <option value="suspended">Suspended</option>
                     </select>
                 </label>
-                <label class="field-wide">Opening hours (JSON)
-                    <textarea name="opening_hours" rows="3" placeholder='{"sunday":"09:00-17:00"}'></textarea>
-                </label>
+                <fieldset class="field-wide">
+                    <legend>Opening hours</legend>
+                    <p>Add dates and time slots in Jordan local time. Split overnight hours across two dates.</p>
+                    <p id="legacy-hours" hidden>This record has existing weekly hours. They are kept unless you add dated slots.</p>
+                    <div id="opening-slots"></div>
+                    <button id="add-slot" class="button button-secondary button-small" type="button">Add time slot</button>
+                </fieldset>
                 <div class="dialog-actions field-wide">
                     <button class="button button-secondary" id="cancel-dialog" type="button">Cancel</button>
                     <button class="button button-primary" id="save-pharmacy" type="submit">Save pharmacy</button>
@@ -127,4 +172,3 @@
     </main>
 </body>
 </html>
-

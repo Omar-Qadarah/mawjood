@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Api\V1\Admin\AdminPharmacyController;
+use App\Http\Controllers\Api\V1\Admin\CustomerController;
 use App\Http\Controllers\Api\V1\Admin\DashboardSummaryController;
 use App\Http\Controllers\Api\V1\Auth\LoginController;
 use App\Http\Controllers\Api\V1\Auth\LogoutController;
@@ -22,15 +23,16 @@ Route::prefix('v1')
             ->middleware('throttle:login')
             ->name('auth.login');
 
-        // Admin pharmacy management routes
+        // Administrator routes
         Route::middleware(['auth:sanctum', 'admin'])
             ->prefix('admin')
             ->name('admin.')
             ->group(function () {
-            Route::apiResource('pharmacies', AdminPharmacyController::class);
-            Route::get('dashboard/summary', DashboardSummaryController::class)
-                ->name('dashboard.summary');
-        });
+                Route::apiResource('pharmacies', AdminPharmacyController::class);
+                Route::apiResource('customers', CustomerController::class);
+                Route::get('dashboard/summary', DashboardSummaryController::class)
+                    ->name('dashboard.summary');
+            });
         // Authenticated routes
         Route::middleware('auth:sanctum')->group(function () {
 
@@ -48,6 +50,3 @@ Route::prefix('v1')
         });
 
     });
-
-
-

@@ -1,9 +1,15 @@
+import { setupCustomers } from './admin-customers.js';
+import { openPharmacyEditor, pharmacyPayload, populateCities, populateGovernors, showPharmacyError } from './admin-pharmacy-form.js';
+
 const root = document.querySelector('#admin-app');
 
 if (root) {
     const apiBase = root.dataset.apiBase;
     const loginPanel = document.querySelector('#login-panel');
-    const pharmacyPanel = document.querySelector('#pharmacy-panel');
+    const workspace = document.querySelector('#workspace');
+    const navigation = [...document.querySelectorAll('[data-admin-page]')];
+    const governorateFilter = document.querySelector('#governorate-filter');
+    const cityFilter = document.querySelector('#city-filter');
     const notice = document.querySelector('#notice');
     const logoutButton = document.querySelector('#logout-button');
     const loginForm = document.querySelector('#login-form');
@@ -18,6 +24,26 @@ if (root) {
     let lastPage = 1;
     let searchTimer;
     let summaryRequest = 0;
+    let pharmacyRequest = 0;
+    const loadCustomers = setupCustomers(api, showNotice, loadSummary, textCell, showDetails);
+    populateGovernors(governorateFilter, 'All governorates');
+
+    function showPage() {
+        if (workspace.hidden) return;
+
+        const requested = window.location.hash.slice(1);
+        const page = navigation.some((link) => link.dataset.adminPage === requested) ? requested : 'overview';
+        for (const link of navigation) {
+            const selected = link.dataset.adminPage === page;
+            document.getElementById(link.dataset.adminPage).hidden = !selected;
+            if (selected) link.setAttribute('aria-current', 'page');
+            else link.removeAttribute('aria-current');
+        }
+        if (page === 'pharmacies') loadPharmacies();
+        if (page === 'customers') loadCustomers();
+    }
+
+    window.addEventListener('hashchange', showPage);
 
     function showNotice(message, isError = false) {
         notice.textContent = message;
@@ -60,7 +86,8 @@ if (root) {
 
     function showLogin(message = '') {
         loginPanel.hidden = false;
-        pharmacyPanel.hidden = true;
+        workspace.hidden = true;
+        pharmacyRequest++;
         summaryRequest++;
         document.querySelector('#summary-data').hidden = true;
         const summaryMessage = document.querySelector('#summary-message');
@@ -72,10 +99,11 @@ if (root) {
 
     async function showPharmacies() {
         loginPanel.hidden = true;
-        pharmacyPanel.hidden = false;
+        workspace.hidden = false;
         logoutButton.hidden = false;
         showNotice('');
-        await Promise.all([loadPharmacies(), loadSummary()]);
+        showPage();
+        await loadSummary();
     }
 
     async function loadSummary() {
@@ -90,23 +118,10 @@ if (root) {
                 element.textContent = summary.counts[element.dataset.summaryCount];
             }
 
-            const entries = summary.recent_pharmacies.map((pharmacy) => {
-                const item = document.createElement('li');
-                const name = document.createElement('strong');
-                name.textContent = pharmacy.name_en;
-                const detail = document.createElement('span');
-                detail.textContent = new Date(pharmacy.created_at).toLocaleDateString() + ' · ' + pharmacy.status;
-                item.append(name, detail);
-                return item;
-            });
-
-            if (!entries.length) {
-                const empty = document.createElement('li');
-                empty.textContent = 'No pharmacies have been added yet.';
-                entries.push(empty);
-            }
-
-            document.querySelector('#recent-pharmacies').replaceChildren(...entries);
+            document.querySelector('#summary-customers').textContent = summary.customers_count;
+            document.querySelector('#summary-owners').textContent = summary.owners_count;
+            renderRecent('#recent-pharmacies', summary.recent_pharmacies, 'created_at', 'No pharmacies have been added yet.');
+            renderRecent('#recent-activity', summary.recent_activity, 'updated_at', 'No pharmacy updates yet.');
             summaryData.hidden = false;
             message.hidden = true;
         } catch {
@@ -118,13 +133,40 @@ if (root) {
         }
     }
 
+    function renderRecent(selector, pharmacies, dateField, emptyMessage) {
+        const entries = pharmacies.map((pharmacy) => {
+            const item = document.createElement('li');
+            const name = document.createElement('strong');
+            name.textContent = pharmacy.name_en;
+            const detail = document.createElement('span');
+            detail.textContent = new Date(pharmacy[dateField]).toLocaleString() + ' · ' + pharmacy.status;
+            item.append(name, detail);
+            return item;
+        });
+        if (!entries.length) {
+            const empty = document.createElement('li');
+            empty.textContent = emptyMessage;
+            entries.push(empty);
+        }
+        document.querySelector(selector).replaceChildren(...entries);
+    }
+
     async function loadPharmacies() {
+        const request = ++pharmacyRequest;
         const params = new URLSearchParams({ page: String(currentPage) });
         if (searchInput.value.trim()) params.set('search', searchInput.value.trim());
         if (statusFilter.value) params.set('status', statusFilter.value);
+        if (governorateFilter.value) params.set('governorate', governorateFilter.value);
+        if (cityFilter.value) params.set('city', cityFilter.value);
 
         try {
             const result = await api(`/admin/pharmacies?${params}`);
+            if (request !== pharmacyRequest) return;
+
+            if (currentPage > result.meta.last_page) {
+                currentPage = result.meta.last_page;
+                return loadPharmacies();
+            }
             renderRows(result.data);
             lastPage = result.meta.last_page;
             document.querySelector('#page-label').textContent = `Page ${result.meta.current_page} of ${lastPage}`;
@@ -174,13 +216,18 @@ if (root) {
             edit.type = 'button';
             edit.className = 'button button-small button-secondary';
             edit.textContent = 'Edit';
-            edit.addEventListener('click', () => openEditor(pharmacy));
+            edit.addEventListener('click', () => openPharmacyEditor(pharmacy));
+            const view = document.createElement('button');
+            view.type = 'button';
+            view.className = 'button button-small button-secondary';
+            view.textContent = 'View';
+            view.addEventListener('click', () => viewPharmacy(pharmacy.id));
             const remove = document.createElement('button');
             remove.type = 'button';
             remove.className = 'button button-small button-danger';
             remove.textContent = 'Delete';
             remove.addEventListener('click', () => deletePharmacy(pharmacy));
-            actions.append(edit, remove);
+            actions.append(view, edit, remove);
             row.append(actions);
             rows.append(row);
         });
@@ -192,22 +239,46 @@ if (root) {
         return cell;
     }
 
-    function openEditor(pharmacy = null) {
-        pharmacyForm.reset();
-        pharmacyForm.elements.id.value = pharmacy?.id ?? '';
-        document.querySelector('#form-title').textContent = pharmacy ? 'Edit pharmacy' : 'Add pharmacy';
-        document.querySelector('#save-pharmacy').textContent = pharmacy ? 'Save changes' : 'Save pharmacy';
-
-        if (pharmacy) {
-            for (const field of ['name_ar', 'name_en', 'license_no', 'phone', 'email', 'city', 'address', 'latitude', 'longitude', 'status']) {
-                pharmacyForm.elements[field].value = pharmacy[field] ?? '';
-            }
-            pharmacyForm.elements.opening_hours.value = pharmacy.opening_hours
-                ? JSON.stringify(pharmacy.opening_hours, null, 2)
-                : '';
+    function showDetails(entity, heading, fields) {
+        const list = document.querySelector('#' + entity + '-details-fields');
+        list.replaceChildren();
+        document.querySelector('#' + entity + '-details').querySelector('h2').textContent = heading;
+        for (const [label, value] of Object.entries(fields)) {
+            const row = document.createElement('div');
+            const term = document.createElement('dt');
+            const description = document.createElement('dd');
+            term.textContent = label;
+            description.textContent = value || '—';
+            description.style.whiteSpace = 'pre-line';
+            row.append(term, description);
+            list.append(row);
         }
+        document.querySelector('#' + entity + '-details').showModal();
+    }
 
-        pharmacyDialog.showModal();
+    async function viewPharmacy(id) {
+        try {
+            const { data } = await api('/admin/pharmacies/' + id);
+            const hours = Object.entries(data.opening_hours ?? {}).map(([key, slot]) =>
+                slot?.date ? slot.date + ' · ' + slot.opens_at + '–' + slot.closes_at : key + ' · ' + String(slot)
+            );
+            showDetails('pharmacy', data.name_en, {
+                'Arabic name': data.name_ar,
+                License: data.license_no,
+                Status: data.status,
+                Phone: data.phone,
+                Email: data.email,
+                Governorate: data.governorate,
+                City: data.city,
+                Address: data.address,
+                'Opening hours': hours.join('\n'),
+                Memberships: data.memberships.map(({ name, role, is_active }) =>
+                    name + ' · ' + role + (is_active ? '' : ' (inactive)')
+                ).join('\n'),
+            });
+        } catch (error) {
+            showNotice(error.message, true);
+        }
     }
 
     async function deletePharmacy(pharmacy) {
@@ -226,11 +297,12 @@ if (root) {
         event.preventDefault();
         showNotice('');
         try {
-            await fetch('/sanctum/csrf-cookie', { credentials: 'same-origin' });
+            const csrf = await fetch(root.dataset.csrfUrl, { credentials: 'same-origin' });
+            if (!csrf.ok) throw new Error('Could not start the sign-in session.');
             const data = new FormData(loginForm);
             const result = await api('/auth/login', {
                 method: 'POST',
-                body: { email: data.get('email'), password: data.get('password') },
+                body: { email: data.get('email'), password: data.get('password'), remember: data.has('remember') },
             });
             if (result.data.platform_role !== 'admin') {
                 await api('/auth/logout', { method: 'POST' }).catch(() => {});
@@ -253,7 +325,7 @@ if (root) {
         }
     });
 
-    document.querySelector('#create-button').addEventListener('click', () => openEditor());
+    document.querySelector('#create-button').addEventListener('click', () => openPharmacyEditor());
     document.querySelector('#close-dialog').addEventListener('click', () => pharmacyDialog.close());
     document.querySelector('#cancel-dialog').addEventListener('click', () => pharmacyDialog.close());
     previousButton.addEventListener('click', () => {
@@ -271,45 +343,34 @@ if (root) {
             loadPharmacies();
         }, 250);
     });
-    statusFilter.addEventListener('change', () => {
+    function filterPharmacies() {
         currentPage = 1;
         loadPharmacies();
+    }
+
+    governorateFilter.addEventListener('change', () => {
+        populateCities(cityFilter, governorateFilter.value, 'All cities');
+        filterPharmacies();
     });
+    cityFilter.addEventListener('change', filterPharmacies);
+    statusFilter.addEventListener('change', filterPharmacies);
 
     pharmacyForm.addEventListener('submit', async (event) => {
         event.preventDefault();
-        const formData = new FormData(pharmacyForm);
-        let openingHours = null;
-        if (formData.get('opening_hours').trim()) {
-            try {
-                openingHours = JSON.parse(formData.get('opening_hours'));
-                if (!openingHours || typeof openingHours !== 'object' || Array.isArray(openingHours)) {
-                    throw new Error('Opening hours must be a JSON object.');
-                }
-            } catch (error) {
-                showNotice(error.message || 'Opening hours must contain valid JSON.', true);
-                return;
-            }
-        }
-
-        const id = formData.get('id');
-        const payload = Object.fromEntries(
-            ['name_ar', 'name_en', 'license_no', 'phone', 'email', 'city', 'address', 'latitude', 'longitude', 'status']
-                .map((name) => [name, formData.get(name)])
-        );
-        payload.opening_hours = openingHours;
+        showPharmacyError();
+        const id = pharmacyForm.elements.id.value;
 
         try {
             await api(id ? `/admin/pharmacies/${id}` : '/admin/pharmacies', {
                 method: id ? 'PATCH' : 'POST',
-                body: payload,
+                body: pharmacyPayload(),
             });
             pharmacyDialog.close();
             showNotice(id ? 'Pharmacy updated.' : 'Pharmacy created.');
             currentPage = 1;
             await Promise.all([loadPharmacies(), loadSummary()]);
         } catch (error) {
-            showNotice(error.message, true);
+            showPharmacyError(error.message);
         }
     });
 

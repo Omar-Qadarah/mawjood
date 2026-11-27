@@ -21,6 +21,7 @@ class Pharmacy extends Model
         'email',
         'address',
         'city',
+        'governorate',
         'latitude',
         'longitude',
         'opening_hours',
