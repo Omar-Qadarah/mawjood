@@ -89,11 +89,13 @@ p { color: var(--muted); }
 .map-info p { color: #365f58; font-size: .79rem; }
 .map-info-head { display: flex; justify-content: space-between; gap: 8px; margin-bottom: 4px; }
 .map-info-head span { color: #365f58; font-size: .78rem; }
-.map-info ul, .activity-list { list-style: none; padding: 0; margin: 0; }
-.map-info ul { max-height: 132px; overflow-y: auto; }
-.map-info li, .activity-list li { display: flex; align-items: center; justify-content: space-between; gap: 7px; border-top: 1px solid var(--line); padding: 5px 0; }
-.map-info li button { background: transparent; border: 0; color: #174c43; text-align: left; padding: 3px; }
-.map-info small, .activity-list small { display: block; font-size: .74rem; opacity: .8; margin-top: 3px; }
+.activity-list { list-style: none; padding: 0; margin: 0; }
+.map-insights { margin: 6px 0 0; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; }
+.map-insights > div { min-width: 0; padding: 6px 7px; background: var(--surface); border-radius: 6px; }
+.map-insights dt { font-size: .73rem; color: var(--muted); line-height: 1.25; }
+.map-insights dd { margin: 3px 0 0; font-size: .9rem; font-weight: 750; overflow-wrap: anywhere; }
+.activity-list li { display: flex; align-items: center; justify-content: space-between; gap: 7px; border-top: 1px solid var(--line); padding: 5px 0; }
+.activity-list small { display: block; font-size: .74rem; opacity: .8; margin-top: 3px; }
 .map-credit { display: inline-block; font-size: .68rem; color: var(--muted); margin: 0 11px 7px; }
 .activity-list { padding: 0 12px 8px; }
 .activity-list li { border-color: var(--line); }

@@ -95,7 +95,7 @@ function Overview({ onDetails }) {
                 </table></div>
             </section>
         </div><aside className="overview-side">
-            <JordanMap sites={sites} onSite={(id) => onDetails('pharmacies', id)} />
+            <JordanMap sites={sites} />
             <section className="panel status-panel"><header className="panel-header"><div><h2>Pharmacy status</h2><p>Listings by review status</p></div></header>
                 <div className="status-layout">
                     <div className="status-ring" role="img" aria-label={Math.round(activeShare) + '% active'}

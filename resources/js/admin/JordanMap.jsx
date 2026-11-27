@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import boundaries from './jordan-boundaries.json';
-import { Icon, Status } from './ui';
+import { Icon } from './ui';
 
 const governorateNames = { "Ma'an": 'Maan', Tafilah: 'Tafileh' };
 const regionName = (feature) => governorateNames[feature.properties.shapeName] ?? feature.properties.shapeName;
@@ -31,13 +31,21 @@ function locateSite(site) {
 const regionStyle = { color: '#fff', weight: 1.5, fillColor: '#e3e6f0', fillOpacity: 1 };
 const highlighted = { ...regionStyle, fillColor: '#8061d2' };
 
-export function JordanMap({ sites, onSite }) {
+export function JordanMap({ sites }) {
     const host = useRef(null);
     const instance = useRef(null);
     const [hovered, setHovered] = useState('');
     const [selected, setSelected] = useState('');
     const visibleRegion = hovered || selected;
     const regionSites = visibleRegion ? sites.filter((site) => locateSite(site) === visibleRegion) : [];
+    const active = regionSites.filter((site) => site.status === 'active').length;
+    const completed = regionSites.reduce((total, site) => total + site.completed_reservations, 0);
+    const sales = new Map();
+    regionSites.forEach((site) => site.sales_by_currency.forEach(({ currency, amount }) => {
+        sales.set(currency, (sales.get(currency) ?? 0) + Number(amount));
+    }));
+    const salesLabels = Array.from(sales, ([currency, amount]) =>
+        new Intl.NumberFormat('en-JO', { style: 'currency', currency }).format(amount));
 
     useEffect(() => {
         const map = L.map(host.current, { attributionControl: false, scrollWheelZoom: false, zoomSnap: 0.25, minZoom: 5 });
@@ -68,39 +76,29 @@ export function JordanMap({ sites, onSite }) {
             },
         }).addTo(map);
         map.fitBounds(regions.getBounds(), { padding: [12, 12] });
-        instance.current = { regions, markers: L.layerGroup().addTo(map) };
+        instance.current = regions;
 
         return () => { instance.current = null; map.remove(); };
     }, []);
 
     useEffect(() => {
-        instance.current?.regions.eachLayer((layer) =>
+        instance.current?.eachLayer((layer) =>
             layer.setStyle(regionName(layer.feature) === visibleRegion ? highlighted : regionStyle));
     }, [visibleRegion]);
-
-    useEffect(() => {
-        const markers = instance.current?.markers;
-        if (!markers) return;
-        markers.clearLayers();
-        if (!visibleRegion) return;
-        sites.filter((site) => locateSite(site) === visibleRegion).forEach((site) => {
-            L.circleMarker([Number(site.latitude), Number(site.longitude)], {
-                radius: 5, color: '#fff', weight: 2, fillColor: '#2b2450', fillOpacity: 1, interactive: false,
-            }).addTo(markers);
-        });
-    }, [visibleRegion, sites]);
 
     return <section className="panel map-card" aria-label="Pharmacy sites in Jordan">
         <header className="panel-header"><div><h2>Pharmacy sites in Jordan</h2><p>Explore by governorate</p></div><span className="map-symbol"><Icon name="location" /></span></header>
         <div className="jordan-map" ref={host} aria-label="Interactive map of Jordan" />
         <div className="map-info" aria-live="polite">
             {visibleRegion ? <>
-                <div className="map-info-head"><strong>{visibleRegion}</strong><span>{regionSites.length} {regionSites.length === 1 ? 'site' : 'sites'}</span></div>
-                {regionSites.length ? <ul>{regionSites.map((site) => <li key={site.id}>
-                    <button type="button" onClick={() => onSite(site.id)}>{site.name_en}<small>{site.city}</small></button>
-                    <Status status={site.status} />
-                </li>)}</ul> : <p>No pharmacies in this governorate.</p>}
-            </> : <p>Hover over or select a governorate to see its pharmacies.</p>}
+                <div className="map-info-head"><strong>{visibleRegion}</strong><span>All time</span></div>
+                <dl className="map-insights">
+                    <div><dt>Total pharmacies</dt><dd>{regionSites.length}</dd></div>
+                    <div><dt>Active pharmacies</dt><dd>{active}</dd></div>
+                    <div><dt>Completed reservations</dt><dd>{completed}</dd></div>
+                    <div><dt>Collected sales value</dt><dd>{salesLabels.length ? salesLabels.join(' · ') : '0'}</dd></div>
+                </dl>
+            </> : <p>Hover over or select a governorate to see its insights.</p>}
         </div>
         <a className="map-credit" href="https://www.geoboundaries.org/api/current/gbOpen/JOR/ADM1/" target="_blank" rel="noreferrer">Boundaries: geoBoundaries / Wikimedia</a>
     </section>;

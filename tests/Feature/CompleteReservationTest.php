@@ -54,11 +54,17 @@ class CompleteReservationTest extends TestCase
 
         $this->app['auth']->forgetGuards();
         $this->actingAs($this->admin, 'web');
+        $this->getJson('/api/v1/admin/pharmacy-sites')->assertOk()
+            ->assertJsonPath('data.0.completed_reservations', 0)->assertJsonCount(0, 'data.0.sales_by_currency');
         $this->postJson($this->completeUrl(), ['pickup_code' => $code])->assertOk()
             ->assertJsonPath('data.status', 'completed')->assertJsonPath('data.held_quantity', 0)
             ->assertJsonPath('data.items.0.allocations.0.status', 'fulfilled')
             ->assertJsonPath('data.items.0.allocations.1.status', 'fulfilled')
             ->assertJsonMissingPath('data.pickup_code_hash');
+        $this->getJson('/api/v1/admin/pharmacy-sites')->assertOk()
+            ->assertJsonPath('data.0.completed_reservations', 1)
+            ->assertJsonPath('data.0.sales_by_currency.0.currency', 'JOD')
+            ->assertJsonPath('data.0.sales_by_currency.0.amount', '112.500');
         $this->assertSame(22, (int) $this->item->batches()->sum('quantity_on_hand'));
         $this->assertSame(0, (int) $this->item->batches()->sum('quantity_held'));
         $this->assertNull($this->reservation->fresh()->pickup_code_hash);
