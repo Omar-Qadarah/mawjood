@@ -1,11 +1,13 @@
 import { useEffect, useRef, useState } from 'react';
 import { Brand, Icon } from './ui';
+import { QuickJump } from './QuickJump';
 
 export const sections = { overview: 'Dashboard', pharmacies: 'Pharmacies', medicines: 'Medicines', inventory: 'Inventory', reservations: 'Reservations', customers: 'Customers', profile: 'Profile settings' };
 const navigation = Object.entries(sections).filter(([key]) => key !== 'profile');
 
 export function Sidebar({ user, tab, onLogout }) {
     const [menu, setMenu] = useState(null);
+    const [dragOffset, setDragOffset] = useState(null);
     const account = useRef(null);
     const accountTrigger = useRef(null);
     const nav = useRef(null);
@@ -48,28 +50,56 @@ export function Sidebar({ user, tab, onLogout }) {
         navTrigger.current?.focus();
     }
 
-    function startSwipe(event) {
+    function startSwipe(event, opening = false) {
         swipe.current = null;
-        if (menu === 'navigation' && event.pointerType === 'touch' && event.isPrimary) {
-            swipe.current = { pointerId: event.pointerId, x: event.clientX, y: event.clientY };
+        if ((opening || menu === 'navigation') && event.pointerType === 'touch' && event.isPrimary) {
+            swipe.current = { pointerId: event.pointerId, x: event.clientX, y: event.clientY, opening };
         }
+    }
+
+    function moveSwipe(event) {
+        const start = swipe.current;
+        if (start?.pointerId !== event.pointerId || start.opening === (menu === 'navigation')) return;
+
+        const delta = event.clientX - start.x;
+        const distance = start.opening ? delta : -delta;
+        const vertical = Math.abs(event.clientY - start.y);
+        if (!start.dragging && (distance < 8 || distance <= vertical * 1.5)) return;
+
+        start.dragging = true;
+        const width = nav.current.offsetWidth;
+        const offset = start.opening ? delta - width : delta;
+        setDragOffset(Math.max(-width, Math.min(0, offset)));
     }
 
     function finishSwipe(event) {
         const start = swipe.current;
-        swipe.current = null;
-        if (menu !== 'navigation' || start?.pointerId !== event.pointerId) return;
+        if (start?.pointerId !== event.pointerId) return;
 
-        const left = start.x - event.clientX;
-        const vertical = Math.abs(start.y - event.clientY);
-        if (left >= 60 && left > vertical * 1.5) {
-            swipe.current = { closedDrawer: true };
+        swipe.current = start.dragging && !start.opening ? { suppressClick: true } : null;
+        setDragOffset(null);
+        if (!start.dragging || start.opening === (menu === 'navigation')) return;
+
+        const distance = start.opening ? event.clientX - start.x : start.x - event.clientX;
+        if (distance < 60) return;
+
+        if (start.opening) {
+            setMenu('navigation');
+            navTrigger.current?.focus();
+        } else {
             closeNavigation();
         }
     }
 
+    function cancelSwipe(event) {
+        if (swipe.current?.pointerId !== event.pointerId) return;
+
+        swipe.current = null;
+        setDragOffset(null);
+    }
+
     function preventSwipeClick(event) {
-        if (!swipe.current?.closedDrawer || event.detail === 0) return;
+        if (!swipe.current?.suppressClick || event.detail === 0) return;
 
         swipe.current = null;
         event.preventDefault();
@@ -83,9 +113,16 @@ export function Sidebar({ user, tab, onLogout }) {
             <Icon name="menu" size={22} />
         </button>
         <Brand />
+        <QuickJump sections={sections} />
+        <div className="navigation-edge" aria-hidden="true" hidden={menu === 'navigation'}
+            onPointerDown={event => startSwipe(event, true)} onPointerMove={moveSwipe} onPointerUp={finishSwipe}
+            onPointerCancel={cancelSwipe} onLostPointerCapture={cancelSwipe} />
         <div className="navigation-backdrop" aria-hidden="true" hidden={menu !== 'navigation'} />
         <nav id="sidebar-navigation" ref={nav} aria-label="Dashboard" data-open={menu === 'navigation'}
-            onPointerDown={startSwipe} onPointerUp={finishSwipe} onPointerCancel={() => { swipe.current = null; }}
+            data-dragging={dragOffset !== null} style={dragOffset === null ? undefined : { "--drawer-offset": dragOffset + "px" }}
+            inert={dragOffset !== null && menu !== "navigation"}
+            onPointerDown={startSwipe} onPointerMove={moveSwipe} onPointerUp={finishSwipe}
+            onPointerCancel={cancelSwipe} onLostPointerCapture={cancelSwipe}
             onClickCapture={preventSwipeClick}>
             <button className="icon-button navigation-close" type="button" aria-label="Close navigation menu" onClick={closeNavigation}>
                 <Icon name="close" size={22} />
