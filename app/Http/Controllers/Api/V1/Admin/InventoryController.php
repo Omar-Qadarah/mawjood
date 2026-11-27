@@ -49,7 +49,13 @@ class InventoryController extends Controller
     public function show(InventoryItem $inventoryItem): InventoryItemResource
     {
         $date = today('Asia/Amman')->toDateString();
-        $inventoryItem->load(['pharmacy', 'medicine', 'batches' => fn ($query) => $query->orderBy('expiry_date')->orderBy('id')]);
+        $inventoryItem->load([
+            'pharmacy',
+            'medicine',
+            'batches' => fn ($query) => $query->orderBy('expiry_date')->orderBy('id'),
+            'movements' => fn ($query) => $query->with('batch:id,batch_no')
+                ->orderByDesc('inventory_movements.id')->limit(10),
+        ]);
 
         foreach ($inventoryItem->batches as $batch) {
             $batch->setAttribute('available_quantity', $batch->availableQuantityOn($date));

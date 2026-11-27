@@ -7,6 +7,7 @@ use App\Http\Controllers\Api\V1\Admin\DashboardSummaryController;
 use App\Http\Controllers\Api\V1\Admin\InventoryController;
 use App\Http\Controllers\Api\V1\Admin\MedicineController;
 use App\Http\Controllers\Api\V1\Admin\PharmacyMapController;
+use App\Http\Controllers\Api\V1\Admin\StockMovementController;
 use App\Http\Controllers\Api\V1\Auth\LoginController;
 use App\Http\Controllers\Api\V1\Auth\LogoutController;
 use App\Http\Controllers\Api\V1\Auth\MeController;
@@ -47,6 +48,10 @@ Route::prefix('v1')
                 Route::get('inventory-items', [InventoryController::class, 'index'])->name('inventory-items.index');
                 Route::get('inventory-items/{inventoryItem}', [InventoryController::class, 'show'])
                     ->whereNumber('inventoryItem')->name('inventory-items.show');
+                Route::post('inventory-items/{inventoryItem}/receipts', [StockMovementController::class, 'receive'])
+                    ->whereNumber('inventoryItem')->name('inventory-items.receipts.store');
+                Route::post('inventory-items/{inventoryItem}/batches/{batch}/adjustments', [StockMovementController::class, 'adjust'])
+                    ->whereNumber(['inventoryItem', 'batch'])->name('inventory-items.adjustments.store');
                 Route::get('dashboard/summary', DashboardSummaryController::class)
                     ->name('dashboard.summary');
             });

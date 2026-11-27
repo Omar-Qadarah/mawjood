@@ -32,6 +32,7 @@ class InventoryItemResource extends JsonResource
             'stock_verified_at' => $this->stock_verified_at,
             'available_quantity' => (int) $this->available_quantity,
             'batches_count' => $this->batches_count,
+            'movements' => StockMovementResource::collection($this->whenLoaded('movements')),
             'batches' => $this->whenLoaded('batches', fn () => $this->batches->map(fn ($batch) => [
                 'id' => $batch->id,
                 'batch_no' => $batch->batch_no,

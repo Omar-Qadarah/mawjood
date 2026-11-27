@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasManyThrough;
 use Illuminate\Support\Facades\DB;
 
 class InventoryItem extends Model
@@ -37,6 +38,11 @@ class InventoryItem extends Model
     public function medicine(): BelongsTo
     {
         return $this->belongsTo(Medicine::class);
+    }
+
+    public function movements(): HasManyThrough
+    {
+        return $this->hasManyThrough(InventoryMovement::class, InventoryBatch::class, 'inventory_item_id', 'batch_id');
     }
 
     public function batches(): HasMany

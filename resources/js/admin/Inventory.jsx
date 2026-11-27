@@ -1,12 +1,17 @@
 import { useEffect, useState } from 'react';
 import { api } from './api';
+import { StockMovementForm } from './StockMovementForm';
 import { Details, Field, Modal, Notice, Status } from './ui';
 
 const endpoint = '/admin/inventory-items';
 
-function StockDetails({ item, onClose }) {
+function StockDetails({ item, onClose, onChanged }) {
     const [data, setData] = useState(null);
     const [error, setError] = useState('');
+    const [notice, setNotice] = useState('');
+    const [form, setForm] = useState(null);
+    const [busy, setBusy] = useState(false);
+    const [revision, setRevision] = useState(0);
 
     useEffect(() => {
         let current = true;
@@ -14,10 +19,24 @@ function StockDetails({ item, onClose }) {
             .then((response) => { if (current) setData(response.data); })
             .catch((exception) => { if (current) setError(exception.message); });
         return () => { current = false; };
-    }, [item.id]);
+    }, [item.id, revision]);
 
-    return <Modal title={item.medicine.name_en + ' stock'} onClose={onClose} wide>
+    function saved(message) {
+        setForm(null);
+        setNotice(message);
+        setError('');
+        setRevision((value) => value + 1);
+        onChanged();
+    }
+
+    function openForm(batch = null) {
+        setNotice('');
+        setForm({ batch });
+    }
+
+    return <Modal title={item.medicine.name_en + ' stock'} onClose={() => { if (!busy) onClose(); }} wide>
         <Notice error>{error}</Notice>
+        <Notice>{notice}</Notice>
         {!data && !error && <p role="status">Loading stock batches…</p>}
         {data && <>
             <Details values={{
@@ -29,17 +48,32 @@ function StockDetails({ item, onClose }) {
                 'Available packages': String(data.available_quantity),
                 'Last stock verification': data.stock_verified_at ? new Date(data.stock_verified_at).toLocaleString() : null,
             }} />
+            {form ? <StockMovementForm key={form.batch?.id ?? 'receipt'} item={item} batch={form.batch}
+                onCancel={() => setForm(null)} onSaved={saved} onBusyChange={setBusy} />
+                : <button className="button primary" type="button" onClick={() => openForm()}>Receive stock</button>}
             <h3>Stock batches</h3>
             <div className="table-scroll"><table>
-                <thead><tr>{['Batch', 'Expiry date', 'Status', 'On hand', 'Held', 'Available'].map((heading) =>
+                <thead><tr>{['Batch', 'Expiry date', 'Status', 'On hand', 'Held', 'Available', 'Actions'].map((heading) =>
                     <th key={heading} scope="col">{heading}</th>)}</tr></thead>
                 <tbody>{data.batches.length ? data.batches.map((batch) => <tr key={batch.id}>
                     <td>{batch.batch_no}</td><td>{batch.expiry_date}</td><td><Status status={batch.status} /></td>
                     <td>{batch.quantity_on_hand}</td><td>{batch.quantity_held}</td><td>{batch.available_quantity}</td>
-                </tr>) : <tr><td className="empty" colSpan="6">No stock batches have been recorded.</td></tr>}</tbody>
+                    <td><button className="button secondary small" type="button" disabled={busy}
+                        aria-label={'Adjust ' + batch.batch_no} onClick={() => openForm(batch)}>Adjust</button></td>
+                </tr>) : <tr><td className="empty" colSpan="7">No stock batches have been recorded.</td></tr>}</tbody>
+            </table></div>
+            <h3>Recent stock movements</h3>
+            <div className="table-scroll"><table>
+                <thead><tr>{['When', 'Batch', 'Movement', 'Change', 'Reason'].map((heading) =>
+                    <th key={heading} scope="col">{heading}</th>)}</tr></thead>
+                <tbody>{data.movements.length ? data.movements.map((movement) => <tr key={movement.id}>
+                    <td>{new Date(movement.created_at).toLocaleString()}</td><td>{movement.batch_no}</td>
+                    <td>{movement.type}</td><td>{movement.quantity > 0 ? '+' : ''}{movement.quantity}</td>
+                    <td>{movement.reason || '—'}</td>
+                </tr>) : <tr><td className="empty" colSpan="5">No stock movements have been recorded.</td></tr>}</tbody>
             </table></div>
         </>}
-        <footer className="form-actions"><button className="button secondary" type="button" onClick={onClose}>Done</button></footer>
+        <footer className="form-actions"><button className="button secondary" type="button" disabled={busy} onClick={onClose}>Done</button></footer>
     </Modal>;
 }
 
@@ -51,6 +85,7 @@ export function Inventory() {
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(true);
     const [selected, setSelected] = useState(null);
+    const [revision, setRevision] = useState(0);
 
     useEffect(() => {
         let current = true;
@@ -77,7 +112,7 @@ export function Inventory() {
             }
         }, 150);
         return () => { current = false; clearTimeout(timer); };
-    }, [filter]);
+    }, [filter, revision]);
 
     function changeFilter(changes) {
         setLoading(true);
@@ -126,6 +161,7 @@ export function Inventory() {
                 <button className="button secondary small" onClick={() => changeFilter({ page: filter.page + 1 })} disabled={filter.page >= result.meta.last_page}>Next</button>
             </footer>}
         </div>
-        {selected && <StockDetails item={selected} onClose={() => setSelected(null)} />}
+        {selected && <StockDetails item={selected} onClose={() => setSelected(null)}
+            onChanged={() => setRevision((value) => value + 1)} />}
     </section>;
 }

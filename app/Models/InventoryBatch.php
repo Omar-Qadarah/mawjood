@@ -6,6 +6,7 @@ use App\Enums\InventoryBatchStatus;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class InventoryBatch extends Model
 {
@@ -36,6 +37,11 @@ class InventoryBatch extends Model
         }
 
         return $this->quantity_on_hand - $this->quantity_held;
+    }
+
+    public function movements(): HasMany
+    {
+        return $this->hasMany(InventoryMovement::class, 'batch_id');
     }
 
     public function inventoryItem(): BelongsTo
