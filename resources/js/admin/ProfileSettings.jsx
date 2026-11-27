@@ -1,10 +1,36 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { api } from './api';
-import { Field, Notice } from './ui';
+import { Field, Modal, Notice } from './ui';
 
 export function ProfileSettings({ user, onUpdated }) {
     const [feedback, setFeedback] = useState({});
     const [saving, setSaving] = useState('');
+    const [previewUrl, setPreviewUrl] = useState(null);
+    const [enlarged, setEnlarged] = useState(false);
+    const photoUrl = useRef(null);
+    const photoInput = useRef(null);
+    const previewButton = useRef(null);
+
+    useEffect(() => () => {
+        if (photoUrl.current) URL.revokeObjectURL(photoUrl.current);
+    }, []);
+
+    function previewPhoto(file) {
+        if (photoUrl.current) URL.revokeObjectURL(photoUrl.current);
+        photoUrl.current = file ? URL.createObjectURL(file) : null;
+        setPreviewUrl(photoUrl.current);
+    }
+
+    function cancelPhotoPreview() {
+        photoInput.current.value = '';
+        previewPhoto(null);
+        photoInput.current.focus();
+    }
+
+    function closeEnlargedPreview() {
+        setEnlarged(false);
+        requestAnimationFrame(() => previewButton.current?.focus());
+    }
 
     async function save(event, section) {
         event.preventDefault();
@@ -17,6 +43,7 @@ export function ProfileSettings({ user, onUpdated }) {
                 if (!data.get('avatar')?.size) data.delete('avatar');
                 const { data: updated } = await api('/admin/profile', { method: 'POST', body: data });
                 onUpdated(updated);
+                previewPhoto(null);
             } else {
                 await api('/admin/profile/password', { method: 'PATCH', body: Object.fromEntries(data) });
             }
@@ -37,12 +64,18 @@ export function ProfileSettings({ user, onUpdated }) {
                 {feedback.section === 'profile' && <Notice error={feedback.error}>{feedback.message}</Notice>}
                 <Field label="Name"><input key={user.name} name="name" defaultValue={user.name} autoComplete="name" maxLength={255} required /></Field>
                 <div className="profile-photo">
-                    <span className="avatar profile-avatar">
+                    {previewUrl ? <button ref={previewButton} className="avatar profile-avatar profile-preview-button" type="button"
+                        aria-label="Enlarge photo preview" aria-haspopup="dialog" onClick={() => setEnlarged(true)}>
+                        <img src={previewUrl} alt="" />
+                    </button> : <span className="avatar profile-avatar">
                         {user.avatar_url ? <img src={user.avatar_url} alt="Profile photo" /> : user.name?.slice(0, 1).toUpperCase()}
-                    </span>
+                    </span>}
                     <div className="profile-photo-control">
-                        <Field label="Profile photo"><input type="file" name="avatar" accept="image/jpeg,image/png,image/webp" aria-describedby="profile-photo-help" /></Field>
-                        <p id="profile-photo-help">JPEG, PNG, or WebP up to 2 MB.</p>
+                        <Field label="Profile photo"><input ref={photoInput} type="file" name="avatar" accept="image/jpeg,image/png,image/webp" aria-describedby="profile-photo-help"
+                            disabled={saving === 'profile'} onChange={event => previewPhoto(event.target.files[0])} /></Field>
+                        <p id="profile-photo-help" aria-live="polite">{previewUrl ? "Select the photo to enlarge it. Save profile to apply." : "JPEG, PNG, or WebP up to 2 MB."}</p>
+                        {previewUrl && <button className="button small secondary" type="button" aria-label="Cancel photo preview"
+                            disabled={saving === 'profile'} onClick={cancelPhotoPreview}>Cancel</button>}
                     </div>
                 </div>
                 <button className="button primary" disabled={Boolean(saving)}>{saving === 'profile' ? 'Saving…' : 'Save profile'}</button>
@@ -56,5 +89,8 @@ export function ProfileSettings({ user, onUpdated }) {
                 <button className="button primary" disabled={Boolean(saving)}>{saving === 'password' ? 'Changing…' : 'Change password'}</button>
             </form>
         </div>
+        {enlarged && previewUrl && <Modal title="Photo preview" onClose={closeEnlargedPreview}>
+            <img className="profile-preview-image" src={previewUrl} alt="New profile photo" />
+        </Modal>}
     </section>;
 }

@@ -1215,6 +1215,22 @@ td strong,
 .profile-form p {
     font-size: 0.8rem;
 }
+.profile-preview-button {
+    border: 0;
+    padding: 0;
+    cursor: zoom-in;
+}
+.modal:has(.profile-preview-image) {
+    width: fit-content;
+    max-width: calc(100% - 24px);
+}
+.profile-preview-image {
+    display: block;
+    max-width: calc(100vw - 54px);
+    max-height: min(calc(90dvh - 80px), 770px);
+    margin-inline: auto;
+    border-radius: 8px;
+}
 .profile-avatar {
     width: 52px;
     height: 52px;
