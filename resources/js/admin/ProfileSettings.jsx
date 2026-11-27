@@ -47,6 +47,7 @@ export function ProfileSettings({ user, onUpdated }) {
     }
 
     const displayedPreview = crop?.url ?? previewUrl;
+    const viewingSavedPhoto = !displayedPreview && Boolean(user.avatar_url);
 
     async function save(event, section) {
         event.preventDefault();
@@ -82,15 +83,15 @@ export function ProfileSettings({ user, onUpdated }) {
                 <Field label="Name"><input key={user.name} name="name" defaultValue={user.name} autoComplete="name" maxLength={255} required /></Field>
                 <div className="profile-photo">
                     {displayedPreview || user.avatar_url ? <button ref={previewButton} className="avatar profile-avatar profile-preview-button" type="button"
-                        aria-label={previewUrl ? "Enlarge photo preview" : "View current profile photo full screen"}
-                        aria-haspopup="dialog" onClick={() => setEnlarged(true)}>
+                        aria-label={displayedPreview ? "Enlarge photo preview" : "View current profile photo full screen"}
+                        disabled={saving === 'profile'} aria-haspopup="dialog" onClick={() => setEnlarged(true)}>
                         <img src={displayedPreview ?? user.avatar_url} alt="" />
                     </button> : <span className="avatar profile-avatar">{user.name?.slice(0, 1).toUpperCase()}</span>}
                     <div className="profile-photo-control">
                         <Field label="Profile photo"><input ref={photoInput} type="file" name="avatar" accept="image/jpeg,image/png,image/webp" aria-describedby="profile-photo-help"
                             disabled={saving === 'profile'} onChange={event => previewPhoto(event.target.files[0])} /></Field>
-                        <p id="profile-photo-help" aria-live="polite">{previewUrl ? "Select the preview to enlarge or crop it. Save profile to apply." : "JPEG, PNG, or WebP up to 2 MB."}</p>
-                        {previewUrl && <button className="button small secondary" type="button" aria-label="Cancel photo preview"
+                        <p id="profile-photo-help" aria-live="polite">{displayedPreview ? "Select the preview to enlarge or crop it. Save profile to apply." : "JPEG, PNG, or WebP up to 2 MB."}</p>
+                        {displayedPreview && <button className="button small secondary" type="button" aria-label="Cancel photo preview"
                             disabled={saving === 'profile'} onClick={cancelPhotoPreview}>Cancel</button>}
                     </div>
                 </div>
@@ -105,13 +106,13 @@ export function ProfileSettings({ user, onUpdated }) {
                 <button className="button primary" disabled={Boolean(saving)}>{saving === 'password' ? 'Changing…' : 'Change password'}</button>
             </form>
         </div>
-        {enlarged && !previewUrl && user.avatar_url && <Modal title="Current profile photo" onClose={closeEnlargedPreview}>
-            <img className="profile-current-image" src={user.avatar_url} alt="Current profile photo" />
-        </Modal>}
-        {enlarged && previewUrl && <Modal title={cropping ? "Crop photo" : "Photo preview"} onClose={closeEnlargedPreview}>
-            {cropping ? <ProfilePhotoCrop source={previewUrl} initialCrop={crop?.settings} onApply={applyCrop}
-                onBack={() => setCropping(false)} /> : <>
-                <img className="profile-preview-image" src={displayedPreview} alt="New profile photo" />
+        {enlarged && (displayedPreview || user.avatar_url) && <Modal
+            title={cropping ? "Crop photo" : viewingSavedPhoto ? "Current profile photo" : "Photo preview"}
+            onClose={closeEnlargedPreview}>
+            {cropping ? <ProfilePhotoCrop source={previewUrl ?? user.avatar_url} initialCrop={crop?.settings}
+                onApply={applyCrop} onBack={() => setCropping(false)} /> : <>
+                <img className={viewingSavedPhoto ? "profile-current-image" : "profile-preview-image"}
+                    src={displayedPreview ?? user.avatar_url} alt={viewingSavedPhoto ? "Current profile photo" : "New profile photo"} />
                 <footer className="form-actions">
                     <button className="button secondary" type="button" onClick={() => setCropping(true)}>Crop photo</button>
                 </footer>

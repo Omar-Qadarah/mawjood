@@ -1243,7 +1243,7 @@ td strong,
 }
 .modal:has(.profile-current-image) .modal-card {
     display: grid;
-    grid-template-rows: auto minmax(0, 1fr);
+    grid-template-rows: auto minmax(0, 1fr) auto;
     height: 100%;
 }
 .profile-current-image {
