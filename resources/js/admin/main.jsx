@@ -136,6 +136,12 @@ function App() {
         return () => window.removeEventListener('hashchange', navigate);
     }, []);
 
+    function clearRouteFilters() {
+        if (!query) return;
+        window.history.replaceState(window.history.state, '', '#' + tab);
+        setHash(tab);
+    }
+
     async function openDetails(entity, id) {
         setMessage(null);
         try {
@@ -168,13 +174,13 @@ function App() {
         content = <Inventory />;
     } else if (tab === 'reservations') {
         const governorate = params.get('governorate') ?? '';
-        content = <Reservations key={status + ':' + governorate} initialStatus={status} initialGovernorate={governorate} />;
+        content = <Reservations onClearRoute={clearRouteFilters} key={status + ':' + governorate} initialStatus={status} initialGovernorate={governorate} />;
     } else if (tab === 'profile') {
         content = <ProfileSettings user={user} onUpdated={setUser} />;
     } else {
         const initialStatus = tab === 'pharmacies' ? status : '';
         const initialGovernorate = tab === 'pharmacies' ? params.get('governorate') ?? '' : '';
-        content = <Directory key={tab + ':' + initialStatus + ':' + initialGovernorate} entity={tab}
+        content = <Directory onClearRoute={clearRouteFilters} key={tab + ':' + initialStatus + ':' + initialGovernorate} entity={tab}
             initialStatus={initialStatus} initialGovernorate={initialGovernorate}
             onChanged={() => setMessage(null)} onDetails={openDetails} />;
     }

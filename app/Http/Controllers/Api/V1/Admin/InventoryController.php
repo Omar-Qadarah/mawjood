@@ -21,6 +21,7 @@ class InventoryController extends Controller
         $filters = $request->validate([
             'pharmacy_id' => ['nullable', 'integer', 'min:1', 'exists:pharmacies,id'],
             'search' => ['nullable', 'string', 'max:150'],
+            'listing' => ['nullable', 'in:listed,unlisted'],
         ]);
 
         $date = today('Asia/Amman')->toDateString();
@@ -31,6 +32,10 @@ class InventoryController extends Controller
 
         if (isset($filters['pharmacy_id'])) {
             $items->where('pharmacy_id', $filters['pharmacy_id']);
+        }
+
+        if (isset($filters['listing'])) {
+            $items->where('is_listed', $filters['listing'] === 'listed');
         }
 
         if (isset($filters['search'])) {

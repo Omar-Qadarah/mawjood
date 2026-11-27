@@ -42,6 +42,8 @@ class AdminInventoryTest extends TestCase
             $this->getJson(self::ENDPOINT.'?'.$query)->assertOk()->assertJsonPath('meta.total', 1)
                 ->assertJsonPath('data.0.medicine.name_en', 'Demo Paracetamol Tablets');
         }
+        $this->getJson(self::ENDPOINT.'?search=OTHER-INVENTORY&listing=listed')->assertOk()->assertJsonPath('meta.total', 0);
+        $this->getJson(self::ENDPOINT.'?search=OTHER-INVENTORY&listing=unlisted')->assertOk()->assertJsonPath('meta.total', 1);
         $this->getJson(self::ENDPOINT.'?search=OTHER-INVENTORY')->assertOk()
             ->assertJsonPath('data.0.pharmacy.id', $other->id);
         $this->getJson(self::ENDPOINT.'?pharmacy_id=999999')->assertUnprocessable()->assertJsonValidationErrors('pharmacy_id');

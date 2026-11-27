@@ -95,6 +95,11 @@ class AdminReservationTest extends TestCase
         $this->getJson(self::ENDPOINT.'?status=completed')->assertOk()->assertJsonPath('meta.total', 2);
         $this->getJson(self::ENDPOINT.'?status=completed&governorate=Amman')->assertOk()
             ->assertJsonPath('meta.total', 1)->assertJsonPath('data.0.id', $completed->id);
+        $this->getJson(self::ENDPOINT.'?'.http_build_query(['status' => 'completed', 'governorate' => 'Amman', 'search' => $completed->code]))
+            ->assertOk()->assertJsonPath('meta.total', 1);
+        $this->getJson(self::ENDPOINT.'?status=completed&search=Aqaba')->assertOk()
+            ->assertJsonPath('meta.total', 1)->assertJsonPath('data.0.pharmacy.id', $aqaba->id);
+        $this->getJson(self::ENDPOINT.'?search='.rawurlencode('%'))->assertOk()->assertJsonPath('meta.total', 0);
         $this->getJson(self::ENDPOINT.'?governorate=unknown')->assertUnprocessable()->assertJsonValidationErrors('governorate');
     }
 

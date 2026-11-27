@@ -18,14 +18,22 @@ class MedicineController extends Controller
 {
     public function index(Request $request): AnonymousResourceCollection
     {
-        $filters = $request->validate(['search' => ['nullable', 'string', 'max:150']]);
+        $filters = $request->validate([
+            'search' => ['nullable', 'string', 'max:150'],
+            'catalog_status' => ['nullable', 'string', 'max:20'],
+        ]);
         $medicines = Medicine::query();
 
         if (isset($filters['search'])) {
             $medicines->matchingCatalogSearch($filters['search']);
         }
 
-        return MedicineResource::collection($medicines->orderBy('name_en')->orderBy('id')->paginate(10)->withQueryString());
+        if (isset($filters['catalog_status'])) {
+            $medicines->where('catalog_status', $filters['catalog_status']);
+        }
+
+        return MedicineResource::collection($medicines->orderBy('name_en')->orderBy('id')->paginate(10)->withQueryString())
+            ->additional(['meta' => ['catalog_statuses' => Medicine::query()->distinct()->orderBy('catalog_status')->pluck('catalog_status')]]);
     }
 
     public function show(Medicine $medicine): MedicineResource
@@ -35,9 +43,10 @@ class MedicineController extends Controller
             'ingredients.activeIngredient',
         ]));
     }
+
     public function store(SaveMedicineRequest $request, SaveMedicineAction $action): JsonResponse
     {
-        return $this->show($action->execute(new Medicine(), $request->validated()))
+        return $this->show($action->execute(new Medicine, $request->validated()))
             ->response()->setStatusCode(201);
     }
 

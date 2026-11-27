@@ -49,6 +49,17 @@ class AdminMedicineCatalogTest extends TestCase
 
         $this->getJson(self::ENDPOINT.'?search='.rawurlencode('%'))->assertOk()->assertJsonPath('meta.total', 1)
             ->assertJsonPath('data.0.name_en', 'Mawjood Demo Package');
+        Medicine::where('name_en', 'Mawjood Demo Package')->update(['catalog_status' => 'archived']);
+        $this->getJson(self::ENDPOINT.'?search=Caffeine&catalog_status=archived')->assertOk()
+            ->assertJsonPath('meta.total', 1)->assertJsonPath('data.0.catalog_status', 'archived')
+            ->assertJsonPath('meta.catalog_statuses', ['active', 'archived']);
+        $this->getJson(self::ENDPOINT.'?search=Caffeine&catalog_status=active')->assertOk()->assertJsonPath('meta.total', 0);
+
+        ActiveIngredient::create(['name_en' => 'Unused Demo Ingredient']);
+        $ingredients = '/api/v1/admin/active-ingredients';
+        $this->getJson($ingredients.'?search=Unused&usage=unused')->assertOk()->assertJsonPath('meta.total', 1);
+        $this->getJson($ingredients.'?search=Unused&usage=used')->assertOk()->assertJsonPath('meta.total', 0);
+        $this->getJson($ingredients.'?search=Caffeine&usage=used')->assertOk()->assertJsonPath('meta.total', 1);
         $this->getJson(self::ENDPOINT.'?search='.str_repeat('x', 151))
             ->assertUnprocessable()->assertJsonValidationErrors('search');
     }

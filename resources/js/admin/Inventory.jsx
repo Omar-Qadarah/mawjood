@@ -2,6 +2,8 @@ import { useEffect, useState } from 'react';
 import { api } from './api';
 import { InventoryListingForm } from './InventoryListingForm';
 import { StockMovementForm } from './StockMovementForm';
+import { useTableLoader } from './useTableLoader';
+import { TableFilters } from './TableFilters';
 import { Details, Field, Modal, Notice, Status } from './ui';
 
 const endpoint = '/admin/inventory-items';
@@ -81,7 +83,7 @@ function StockDetails({ item, onClose, onChanged }) {
 export function Inventory() {
     const [pharmacies, setPharmacies] = useState(null);
     const [pharmacyError, setPharmacyError] = useState('');
-    const [filter, setFilter] = useState({ pharmacy: '', search: '', page: 1 });
+    const [filter, setFilter] = useState({ pharmacy: '', search: '', listing: '', page: 1 });
     const [result, setResult] = useState(null);
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(true);
@@ -98,11 +100,13 @@ export function Inventory() {
         return () => { current = false; };
     }, []);
 
+    const loadTable = useTableLoader();
     useEffect(() => {
         let current = true;
-        const timer = setTimeout(async () => {
+        const cancel = loadTable(filter.search, async () => {
             const params = new URLSearchParams({ page: filter.page });
             if (filter.pharmacy) params.set('pharmacy_id', filter.pharmacy);
+            if (filter.listing) params.set('listing', filter.listing);
             if (filter.search.trim()) params.set('search', filter.search.trim());
 
             try {
@@ -113,9 +117,9 @@ export function Inventory() {
             } finally {
                 if (current) setLoading(false);
             }
-        }, 150);
-        return () => { current = false; clearTimeout(timer); };
-    }, [filter, revision]);
+        });
+        return () => { current = false; cancel?.(); };
+    }, [loadTable, filter, revision]);
 
     function changeFilter(changes) {
         setLoading(true);
@@ -136,7 +140,9 @@ export function Inventory() {
         <Notice>{notice}</Notice>
         <Notice error>{error}</Notice><Notice error>{pharmacyError}</Notice>
         <div className="panel directory" aria-busy={loading}>
-            <div className="table-filters">
+            <TableFilters label="Search inventory" search={filter.search} onSearch={(search) => changeFilter({ search })}
+                onClear={() => changeFilter({ search: '', pharmacy: '', listing: '' })}
+                placeholder="Pharmacy, medicine, or batch number">
                 <Field label="Pharmacy"><select value={filter.pharmacy} disabled={!pharmacies}
                     onChange={(event) => changeFilter({ pharmacy: event.target.value })}>
                     <option value="">All pharmacies</option>
@@ -144,10 +150,12 @@ export function Inventory() {
                         {pharmacy.name_en} · {pharmacy.city}
                     </option>)}
                 </select></Field>
-                <Field label="Search inventory"><input type="search" value={filter.search} maxLength={150}
-                    onChange={(event) => changeFilter({ search: event.target.value })}
-                    placeholder="Pharmacy, medicine, or batch number" /></Field>
-            </div>
+                <Field label="Listing"><select value={filter.listing} onChange={(event) => changeFilter({ listing: event.target.value })}>
+                    <option value="">All listings</option>
+                    <option value="listed">Listed</option>
+                    <option value="unlisted">Unlisted</option>
+                </select></Field>
+            </TableFilters>
             <div className="table-scroll"><table>
                 <thead><tr>{['Pharmacy', 'Medicine', 'Selling price', 'Listing', 'Available', 'Batches', 'Details'].map((heading) =>
                     <th key={heading} scope="col">{heading}</th>)}</tr></thead>

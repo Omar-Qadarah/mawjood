@@ -7,8 +7,8 @@ import { Icon } from './ui';
 const governorateNames = { "Ma'an": 'Maan', Tafilah: 'Tafileh' };
 const regionName = (feature) => governorateNames[feature.properties.shapeName] ?? feature.properties.shapeName;
 
-const regionStyle = { color: '#fff', weight: 1.5, fillColor: '#e3e6f0', fillOpacity: 1 };
-const highlighted = { ...regionStyle, fillColor: '#8061d2' };
+const regionStyle = { color: '#fff', weight: 1.5, fillColor: '#d5e6e2', fillOpacity: 1 };
+const highlighted = { ...regionStyle, fillColor: '#23867c' };
 
 export function JordanMap({ sites }) {
     const host = useRef(null);

@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react';
 import { api, places } from './api';
+import { useTableLoader } from './useTableLoader';
+import { TableFilters } from './TableFilters';
 import { PharmacyForm, weekdays } from './PharmacyForm';
 import { Details, Field, Icon, Modal, Notice, Status } from './ui';
 
@@ -62,7 +64,7 @@ export function RecordDetails({ entity, record, onClose }) {
     </Modal>;
 }
 
-export function Directory({ entity, initialStatus = '', initialGovernorate = '', onChanged, onDetails }) {
+export function Directory({ entity, initialStatus = '', initialGovernorate = '', onClearRoute, onChanged, onDetails }) {
     const pharmacy = entity === 'pharmacies';
     const singular = pharmacy ? 'pharmacy' : 'customer';
     const path = '/admin/' + entity;
@@ -81,9 +83,10 @@ export function Directory({ entity, initialStatus = '', initialGovernorate = '',
     const [deletion, setDeletion] = useState(null);
     const [busy, setBusy] = useState(false);
 
+    const loadTable = useTableLoader();
     useEffect(() => {
         let current = true;
-        const timer = setTimeout(async () => {
+        const cancel = loadTable(filters.search, async () => {
             const query = new URLSearchParams({ page });
             Object.entries(filters).forEach(([key, value]) => { if (value.trim()) query.set(key, value.trim()); });
             try {
@@ -95,14 +98,20 @@ export function Directory({ entity, initialStatus = '', initialGovernorate = '',
             } catch (error) {
                 if (current) setMessage({ error: true, text: error.message });
             }
-        }, 150);
+        });
 
-        return () => { current = false; clearTimeout(timer); };
-    }, [path, page, filters, revision]);
+        return () => { current = false; cancel?.(); };
+    }, [loadTable, path, page, filters, revision]);
 
     function filter(key, value) {
         setPage(1);
         setFilters((previous) => ({ ...previous, [key]: value, ...(key === 'governorate' ? { city: '' } : {}) }));
+    }
+
+    function clearFilters() {
+        setFilters({ search: '', status: '', governorate: '', city: '' });
+        setPage(1);
+        onClearRoute();
     }
 
     async function save(body) {
@@ -137,8 +146,8 @@ export function Directory({ entity, initialStatus = '', initialGovernorate = '',
         </div>
         <Notice error={message?.error}>{message?.text}</Notice>
         <div className="panel directory">
-            <div className="table-filters">
-                <Field label="Search"><input type="search" value={filters.search} onChange={(event) => filter('search', event.target.value)} placeholder={pharmacy ? 'Name, license, or city' : 'Name or email'} /></Field>
+            <TableFilters onClear={clearFilters} search={filters.search} onSearch={(value) => filter('search', value)} maxLength={100}
+                placeholder={pharmacy ? 'Name, license, or city' : 'Name or email'}>
                 <Field label="Status"><select value={filters.status} onChange={(event) => filter('status', event.target.value)}>
                     <option value="">All statuses</option>{statuses.map((status) =>
                         <option key={status} value={status}>{status[0].toUpperCase() + status.slice(1)}</option>)}</select></Field>
@@ -148,7 +157,7 @@ export function Directory({ entity, initialStatus = '', initialGovernorate = '',
                     <Field label="City"><select disabled={!filters.governorate} value={filters.city} onChange={(event) => filter('city', event.target.value)}>
                         <option value="">All cities</option>{(places[filters.governorate]?.cities ?? []).map((name) => <option key={name}>{name}</option>)}</select></Field>
                 </>}
-            </div>
+            </TableFilters>
             <div className="table-scroll">
                 <table>
                     <thead><tr>{(pharmacy ? ['Pharmacy', 'License', 'City', 'Status', 'Members', 'Actions'] : ['Customer', 'Email', 'Status', 'Memberships', 'Actions']).map((column) => <th key={column} scope="col">{column}</th>)}</tr></thead>

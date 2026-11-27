@@ -2,6 +2,8 @@ import { useEffect, useState } from 'react';
 import { api } from './api';
 import { IngredientManager } from './IngredientManager';
 import { MedicineEditor } from './MedicineEditor';
+import { useTableLoader } from './useTableLoader';
+import { TableFilters } from './TableFilters';
 import { Details, Field, Modal, Notice, Status } from './ui';
 
 const endpoint = '/admin/medicines';
@@ -67,6 +69,7 @@ function MedicineDetails({ summary, onClose }) {
 
 export function Medicines() {
     const [search, setSearch] = useState('');
+    const [status, setStatus] = useState('');
     const [page, setPage] = useState(1);
     const [result, setResult] = useState(null);
     const [loading, setLoading] = useState(true);
@@ -80,12 +83,14 @@ export function Medicines() {
     const [deleteError, setDeleteError] = useState('');
     const [deletingBusy, setDeletingBusy] = useState(false);
 
+    const loadTable = useTableLoader();
     useEffect(() => {
         let current = true;
-        const timer = setTimeout(async () => {
+        const cancel = loadTable(search, async () => {
             try {
                 const params = new URLSearchParams({ page });
                 if (search.trim()) params.set('search', search.trim());
+                if (status) params.set('catalog_status', status);
                 const catalog = await api(endpoint + '?' + params);
                 if (current) {
                     if (page > catalog.meta.last_page) setPage(catalog.meta.last_page);
@@ -96,10 +101,10 @@ export function Medicines() {
             } finally {
                 if (current) setLoading(false);
             }
-        }, 150);
+        });
 
-        return () => { current = false; clearTimeout(timer); };
-    }, [search, page, revision]);
+        return () => { current = false; cancel?.(); };
+    }, [loadTable, search, status, page, revision]);
 
     function startLoading() {
         setLoading(true);
@@ -110,6 +115,20 @@ export function Medicines() {
         if (value === search) return;
         startLoading();
         setSearch(value);
+        setPage(1);
+    }
+
+    function filterStatus(value) {
+        startLoading();
+        setStatus(value);
+        setPage(1);
+    }
+
+    function clearFilters() {
+        if (!search && !status && page === 1) return;
+        startLoading();
+        setSearch('');
+        setStatus('');
         setPage(1);
     }
 
@@ -149,13 +168,13 @@ export function Medicines() {
         </div>
         <Notice error>{error}</Notice><Notice>{notice}</Notice>
         <div className="panel directory" aria-busy={loading}>
-            <div className="table-filters">
-                <Field label="Search medicines">
-                    <input type="search" value={search} maxLength={150}
-                        onChange={(event) => searchCatalog(event.target.value)}
-                        placeholder="Name, ingredient, barcode, or JFDA number" />
-                </Field>
-            </div>
+            <TableFilters onClear={clearFilters} label="Search medicines" search={search} onSearch={searchCatalog}
+                placeholder="Name, ingredient, barcode, or JFDA number">
+                <Field label="Catalog status"><select value={status} onChange={(event) => filterStatus(event.target.value)}>
+                    <option value="">All statuses</option>
+                    {(result?.meta.catalog_statuses ?? []).map((option) => <option key={option}>{option}</option>)}
+                </select></Field>
+            </TableFilters>
             <div className="table-scroll">
                 <table>
                     <thead><tr>{['Medicine', 'Strength', 'Package', 'Status', 'Actions'].map((heading) =>
@@ -181,7 +200,7 @@ export function Medicines() {
         </div>
         {selection && <MedicineDetails summary={selection} onClose={() => setSelection(null)} />}
         {editor && <MedicineEditor id={editor.id} onClose={() => setEditor(null)} onSaved={(message) => {
-            if (!editor.id) { setSearch(''); setPage(1); }
+            if (!editor.id) { setSearch(''); setStatus(''); setPage(1); }
             setEditor(null);
             refresh(message);
         }} />}

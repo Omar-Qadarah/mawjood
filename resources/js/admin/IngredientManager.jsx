@@ -1,11 +1,14 @@
 import { useEffect, useState } from 'react';
 import { api } from './api';
+import { useTableLoader } from './useTableLoader';
+import { TableFilters } from './TableFilters';
 import { Field, Modal, Notice } from './ui';
 
 const endpoint = '/admin/active-ingredients';
 
 export function IngredientManager({ onClose }) {
     const [search, setSearch] = useState('');
+    const [usage, setUsage] = useState('');
     const [page, setPage] = useState(1);
     const [revision, setRevision] = useState(0);
     const [result, setResult] = useState(null);
@@ -15,11 +18,12 @@ export function IngredientManager({ onClose }) {
     const [notice, setNotice] = useState('');
     const [busy, setBusy] = useState(false);
 
+    const loadTable = useTableLoader();
     useEffect(() => {
         let current = true;
-        const timer = setTimeout(async () => {
+        const cancel = loadTable(search, async () => {
             try {
-                const response = await api(endpoint + '?' + new URLSearchParams({ search, page }));
+                const response = await api(endpoint + '?' + new URLSearchParams({ search, usage, page }));
                 if (current) {
                     if (page > response.meta.last_page) setPage(response.meta.last_page);
                     else setResult(response);
@@ -27,9 +31,9 @@ export function IngredientManager({ onClose }) {
             } catch (exception) {
                 if (current) setError(exception.message);
             }
-        }, 150);
-        return () => { current = false; clearTimeout(timer); };
-    }, [search, page, revision]);
+        });
+        return () => { current = false; cancel?.(); };
+    }, [loadTable, search, usage, page, revision]);
 
     async function write(method, id, body) {
         setBusy(true);
@@ -39,6 +43,7 @@ export function IngredientManager({ onClose }) {
             await api(endpoint + (id ? '/' + id : ''), { method, body });
             if (method === 'POST') {
                 setSearch('');
+                setUsage('');
                 setPage(1);
             }
             setEditor(null);
@@ -71,11 +76,23 @@ export function IngredientManager({ onClose }) {
             <footer className="form-actions"><button className="button secondary" type="button" onClick={() => { setDeleting(null); setError(''); }} disabled={busy}>Cancel</button>
                 <button className="button danger" type="button" disabled={busy} onClick={() => write('DELETE', deleting.id)}>Confirm delete ingredient</button></footer>
         </div>}
-        {!editor && !deleting && <div className="table-filters">
-            <Field label="Search active ingredients"><input type="search" maxLength={150} value={search}
-                onChange={(event) => { setSearch(event.target.value); setPage(1); }} /></Field>
+        {!editor && !deleting && <TableFilters label="Search active ingredients" search={search} placeholder="Name or ATC code"
+            onClear={() => {
+                setError('');
+                setSearch('');
+                setUsage('');
+                setPage(1);
+            }}
+            onSearch={(value) => { setError(''); setSearch(value); setPage(1); }}>
+            <Field label="Package usage"><select value={usage} onChange={(event) => {
+                setError(''); setUsage(event.target.value); setPage(1);
+            }}>
+                <option value="">All ingredients</option>
+                <option value="used">Used in a package</option>
+                <option value="unused">Unused</option>
+            </select></Field>
             <button className="button primary" type="button" onClick={() => { setError(''); setNotice(''); setEditor({}); }}>Add active ingredient</button>
-        </div>}
+        </TableFilters>}
         <div className="table-scroll"><table>
             <thead><tr><th scope="col">Ingredient</th><th scope="col">ATC code</th><th scope="col">Packages</th><th scope="col">Actions</th></tr></thead>
             <tbody>{result?.data.length ? result.data.map((ingredient) => <tr key={ingredient.id}>

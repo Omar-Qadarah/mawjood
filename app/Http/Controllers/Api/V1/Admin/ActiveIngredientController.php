@@ -17,7 +17,10 @@ class ActiveIngredientController extends Controller
 {
     public function index(Request $request): AnonymousResourceCollection
     {
-        $filters = $request->validate(['search' => ['nullable', 'string', 'max:150']]);
+        $filters = $request->validate([
+            'search' => ['nullable', 'string', 'max:150'],
+            'usage' => ['nullable', 'in:used,unused'],
+        ]);
         $ingredients = ActiveIngredient::query()->withCount('medicineIngredients');
 
         if (isset($filters['search'])) {
@@ -27,6 +30,12 @@ class ActiveIngredientController extends Controller
                     ->orWhereRaw("name_ar LIKE ? ESCAPE '!'", [$pattern])
                     ->orWhereRaw("atc_code LIKE ? ESCAPE '!'", [$pattern]);
             });
+        }
+
+        if (($filters['usage'] ?? null) === 'used') {
+            $ingredients->has('medicineIngredients');
+        } elseif (($filters['usage'] ?? null) === 'unused') {
+            $ingredients->doesntHave('medicineIngredients');
         }
 
         return ActiveIngredientResource::collection($ingredients->orderBy('name_en')->orderBy('id')->paginate(20)->withQueryString());

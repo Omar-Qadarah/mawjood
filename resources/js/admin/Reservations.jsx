@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react';
 import { api, places } from './api';
+import { useTableLoader } from './useTableLoader';
+import { TableFilters } from './TableFilters';
 import { Details, Field, Modal, Notice, Status } from './ui';
 
 const endpoint = '/admin/reservations';
@@ -154,8 +156,9 @@ function ReservationDetails({ id, code, onClose, onReviewed }) {
     </Modal>;
 }
 
-export function Reservations({ initialStatus = '', initialGovernorate = '' }) {
+export function Reservations({ initialStatus = '', initialGovernorate = '', onClearRoute }) {
     const [filter, setFilter] = useState({
+        search: '',
         status: statuses.includes(initialStatus) ? initialStatus : '',
         governorate: Object.hasOwn(places, initialGovernorate) ? initialGovernorate : '',
         page: 1,
@@ -165,18 +168,22 @@ export function Reservations({ initialStatus = '', initialGovernorate = '' }) {
     const [loading, setLoading] = useState(true);
     const [selected, setSelected] = useState(null);
 
+    const loadTable = useTableLoader();
     useEffect(() => {
         let current = true;
-        const params = new URLSearchParams({ page: filter.page });
-        if (filter.status) params.set('status', filter.status);
-        if (filter.governorate) params.set('governorate', filter.governorate);
+        const cancel = loadTable(filter.search, () => {
+            const params = new URLSearchParams({ page: filter.page });
+            if (filter.status) params.set('status', filter.status);
+            if (filter.governorate) params.set('governorate', filter.governorate);
+            if (filter.search.trim()) params.set('search', filter.search.trim());
 
-        api(endpoint + '?' + params)
-            .then((response) => { if (current) setResult(response); })
-            .catch((exception) => { if (current) setError(exception.message); })
-            .finally(() => { if (current) setLoading(false); });
-        return () => { current = false; };
-    }, [filter]);
+            api(endpoint + '?' + params)
+                .then((response) => { if (current) setResult(response); })
+                .catch((exception) => { if (current) setError(exception.message); })
+                .finally(() => { if (current) setLoading(false); });
+        });
+        return () => { current = false; cancel?.(); };
+    }, [loadTable, filter]);
 
     function changeFilter(changes) {
         setLoading(true);
@@ -188,14 +195,19 @@ export function Reservations({ initialStatus = '', initialGovernorate = '' }) {
     let emptyText = 'No reservations match these filters.';
     if (loading) emptyText = 'Loading reservations…';
     else if (error) emptyText = 'Reservation results are unavailable.';
-    else if (!filter.status && !filter.governorate) emptyText = 'No reservations have been placed yet.';
+    else if (!filter.status && !filter.governorate && !filter.search.trim()) emptyText = 'No reservations have been placed yet.';
 
     return <section aria-labelledby="reservations-heading">
         <div className="page-heading"><div><h1 id="reservations-heading">Reservations</h1>
             <p>Review held stock and reservation deadlines in Jordan time.</p></div></div>
         <Notice error>{error}</Notice>
         <div className="panel directory" aria-busy={loading}>
-            <div className="table-filters">
+            <TableFilters label="Search reservations" search={filter.search} onSearch={(search) => changeFilter({ search })}
+                onClear={() => {
+                    changeFilter({ search: '', governorate: '', status: '' });
+                    onClearRoute();
+                }}
+                placeholder="Reservation code or pharmacy name">
                 <Field label="Governorate"><select value={filter.governorate} onChange={(event) => changeFilter({ governorate: event.target.value })}>
                     <option value="">All governorates</option>
                     {Object.keys(places).map((name) => <option key={name}>{name}</option>)}
@@ -204,7 +216,7 @@ export function Reservations({ initialStatus = '', initialGovernorate = '' }) {
                     <option value="">All statuses</option>
                     {statuses.map((status) => <option key={status} value={status}>{status[0].toUpperCase() + status.slice(1)}</option>)}
                 </select></Field>
-            </div>
+            </TableFilters>
             <div className="table-scroll"><table>
                 <thead><tr>{['Reservation', 'Pharmacy', 'Status', 'Held packages', 'Expiry deadline', 'Details'].map((heading) =>
                     <th key={heading} scope="col">{heading}</th>)}</tr></thead>

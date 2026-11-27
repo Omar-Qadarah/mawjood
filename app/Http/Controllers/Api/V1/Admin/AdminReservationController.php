@@ -24,6 +24,7 @@ class AdminReservationController extends Controller
         $filters = $request->validate([
             'status' => ['nullable', Rule::enum(ReservationStatus::class)],
             'governorate' => ['nullable', Rule::in(array_keys(config('jordan')))],
+            'search' => ['nullable', 'string', 'max:150'],
         ]);
 
         $reservations = Reservation::query()
@@ -37,6 +38,16 @@ class AdminReservationController extends Controller
 
         if (isset($filters['governorate'])) {
             $reservations->whereHas('pharmacy', fn (Builder $query) => $query->where('governorate', $filters['governorate']));
+        }
+
+        if (isset($filters['search'])) {
+            $pattern = '%'.strtr($filters['search'], ['!' => '!!', '%' => '!%', '_' => '!_']).'%';
+            $reservations->where(function (Builder $query) use ($pattern): void {
+                $query->whereRaw("code LIKE ? ESCAPE '!'", [$pattern])
+                    ->orWhereHas('pharmacy', fn (Builder $pharmacy) => $pharmacy
+                        ->whereRaw("name_en LIKE ? ESCAPE '!'", [$pattern])
+                        ->orWhereRaw("name_ar LIKE ? ESCAPE '!'", [$pattern]));
+            });
         }
 
         return ReservationResource::collection($reservations->latest('id')->paginate(10)->withQueryString());
