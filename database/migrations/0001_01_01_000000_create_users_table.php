@@ -2,7 +2,6 @@
 
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
@@ -18,18 +17,13 @@ return new class extends Migration
             $table->string('password')->nullable();
             $table->string('phone', 20)->nullable()->unique();
             $table->timestamp('phone_verified_at')->nullable();
-            $table->string('platform_role', 20)->default('customer');
+            $table->enum('platform_role', ['customer', 'admin'])->default('customer');
             $table->char('locale', 2)->default('ar');
             $table->boolean('is_active')->default(true);
             $table->timestamp('anonymized_at')->nullable();
             $table->rememberToken();
             $table->timestamps();
         });
-
-        DB::statement(
-            "ALTER TABLE users ADD CONSTRAINT users_platform_role_check
-             CHECK (platform_role IN ('customer', 'admin'))"
-        );
 
         Schema::create('password_reset_tokens', function (Blueprint $table) {
             $table->string('email', 190)->primary();
