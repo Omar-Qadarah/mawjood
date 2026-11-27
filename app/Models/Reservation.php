@@ -38,6 +38,18 @@ class Reservation extends Model
                 ->where('pickup_deadline', '<=', $cutoff)));
     }
 
+    public function scopeNearingDeadline(Builder $query): Builder
+    {
+        $now = now();
+        $cutoff = $now->copy()->addHour();
+
+        return $query->where(fn (Builder $due) => $due
+            ->where(fn (Builder $pending) => $pending->where('status', ReservationStatus::Pending->value)
+                ->where('response_deadline', '>', $now)->where('response_deadline', '<=', $cutoff))
+            ->orWhere(fn (Builder $confirmed) => $confirmed->where('status', ReservationStatus::Confirmed->value)
+                ->where('pickup_deadline', '>', $now)->where('pickup_deadline', '<=', $cutoff)));
+    }
+
     public function hashPickupCode(string $code): string
     {
         return hash_hmac('sha256', $this->id.':'.$code, config('app.key'));

@@ -25,6 +25,7 @@ class AdminReservationController extends Controller
             'status' => ['nullable', Rule::enum(ReservationStatus::class)],
             'governorate' => ['nullable', Rule::in(array_keys(config('jordan')))],
             'search' => ['nullable', 'string', 'max:150'],
+            'deadline' => ['nullable', Rule::in(['upcoming'])],
         ]);
 
         $reservations = Reservation::query()
@@ -38,6 +39,12 @@ class AdminReservationController extends Controller
 
         if (isset($filters['governorate'])) {
             $reservations->whereHas('pharmacy', fn (Builder $query) => $query->where('governorate', $filters['governorate']));
+        }
+
+        if (isset($filters['deadline'])) {
+            $reservations->nearingDeadline()
+                ->orderByRaw('CASE WHEN status = ? THEN response_deadline ELSE pickup_deadline END',
+                    [ReservationStatus::Pending->value]);
         }
 
         if (isset($filters['search'])) {

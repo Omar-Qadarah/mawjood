@@ -103,6 +103,37 @@ class AdminReservationTest extends TestCase
         $this->getJson(self::ENDPOINT.'?governorate=unknown')->assertUnprocessable()->assertJsonValidationErrors('governorate');
     }
 
+    public function test_dashboard_and_deadline_filter_use_the_same_upcoming_reservations(): void
+    {
+        $this->freezeTime();
+        $pending = $this->createReservation();
+        $now = now();
+        $pending->update(['response_deadline' => $now->copy()->addHour()]);
+
+        foreach ([
+            ['PICKUP', ReservationStatus::Confirmed, -5, 10],
+            ['PASSED', ReservationStatus::Pending, 0, null],
+            ['FUTURE', ReservationStatus::Pending, 61, null],
+            ['DONE', ReservationStatus::Completed, 20, 20],
+        ] as [$code, $status, $responseMinutes, $pickupMinutes]) {
+            Reservation::create([
+                'code' => $code, 'user_id' => $pending->user_id, 'pharmacy_id' => $pending->pharmacy_id,
+                'status' => $status, 'idempotency_key' => $code,
+                'response_deadline' => $now->copy()->addMinutes($responseMinutes),
+            ])->forceFill([
+                'pickup_deadline' => $pickupMinutes === null ? null : $now->copy()->addMinutes($pickupMinutes),
+            ])->save();
+        }
+
+        $this->actingAs(User::factory()->create(['platform_role' => PlatformRole::Admin, 'is_active' => true]), 'web');
+        $this->getJson('/api/v1/admin/dashboard/summary')->assertOk()->assertJsonPath('upcoming_reservations_count', 2);
+        $this->getJson(self::ENDPOINT.'?deadline=upcoming')->assertOk()
+            ->assertJsonPath('meta.total', 2)->assertJsonPath('data.0.code', 'PICKUP')
+            ->assertJsonPath('data.1.id', $pending->id);
+        $this->getJson(self::ENDPOINT.'?deadline=upcoming&status=pending')->assertOk()
+            ->assertJsonPath('meta.total', 1)->assertJsonPath('data.0.id', $pending->id);
+    }
+
     public function test_only_active_admins_can_read_reservations(): void
     {
         $reservation = $this->createReservation();

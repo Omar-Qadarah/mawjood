@@ -156,11 +156,12 @@ function ReservationDetails({ id, code, onClose, onReviewed }) {
     </Modal>;
 }
 
-export function Reservations({ initialStatus = '', initialGovernorate = '', onClearRoute }) {
+export function Reservations({ initialStatus = '', initialGovernorate = '', initialDeadline = '', onClearRoute }) {
     const [filter, setFilter] = useState({
         search: '',
         status: statuses.includes(initialStatus) ? initialStatus : '',
         governorate: Object.hasOwn(places, initialGovernorate) ? initialGovernorate : '',
+        deadline: initialDeadline,
         page: 1,
     });
     const [result, setResult] = useState(null);
@@ -174,6 +175,7 @@ export function Reservations({ initialStatus = '', initialGovernorate = '', onCl
         const cancel = loadTable(filter.search, () => {
             const params = new URLSearchParams({ page: filter.page });
             if (filter.status) params.set('status', filter.status);
+            if (filter.deadline) params.set('deadline', filter.deadline);
             if (filter.governorate) params.set('governorate', filter.governorate);
             if (filter.search.trim()) params.set('search', filter.search.trim());
 
@@ -195,7 +197,7 @@ export function Reservations({ initialStatus = '', initialGovernorate = '', onCl
     let emptyText = 'No reservations match these filters.';
     if (loading) emptyText = 'Loading reservations…';
     else if (error) emptyText = 'Reservation results are unavailable.';
-    else if (!filter.status && !filter.governorate && !filter.search.trim()) emptyText = 'No reservations have been placed yet.';
+    else if (!filter.deadline && !filter.status && !filter.governorate && !filter.search.trim()) emptyText = 'No reservations have been placed yet.';
 
     return <section aria-labelledby="reservations-heading">
         <div className="page-heading"><div><h1 id="reservations-heading">Reservations</h1>
@@ -204,7 +206,7 @@ export function Reservations({ initialStatus = '', initialGovernorate = '', onCl
         <div className="panel directory" aria-busy={loading}>
             <TableFilters label="Search reservations" search={filter.search} onSearch={(search) => changeFilter({ search })}
                 onClear={() => {
-                    changeFilter({ search: '', governorate: '', status: '' });
+                    changeFilter({ search: '', governorate: '', status: '', deadline: '' });
                     onClearRoute();
                 }}
                 placeholder="Reservation code or pharmacy name">
@@ -215,6 +217,10 @@ export function Reservations({ initialStatus = '', initialGovernorate = '', onCl
                 <Field label="Status"><select value={filter.status} onChange={(event) => changeFilter({ status: event.target.value })}>
                     <option value="">All statuses</option>
                     {statuses.map((status) => <option key={status} value={status}>{status[0].toUpperCase() + status.slice(1)}</option>)}
+                </select></Field>
+                <Field label="Deadline"><select value={filter.deadline} onChange={event => changeFilter({ deadline: event.target.value })}>
+                    <option value="">All deadlines</option>
+                    <option value="upcoming">Due within 60 minutes</option>
                 </select></Field>
             </TableFilters>
             <div className="table-scroll"><table>

@@ -977,6 +977,51 @@ td strong,
 .overview-grid .panel {
     border-radius: 14px;
 }
+.attention-panel {
+    grid-column: 1 / -1;
+}
+.attention-links {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+    padding: 0 12px 12px;
+}
+.attention-links a {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto auto;
+    align-items: center;
+    gap: 8px;
+    min-height: 48px;
+    padding: 6px 9px;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    color: var(--ink);
+    font-size: 0.84rem;
+    text-decoration: none;
+}
+.attention-links a:hover {
+    background: var(--accent-soft);
+}
+.attention-links svg {
+    color: var(--accent);
+}
+.attention-links p {
+    font-size: 0.75rem;
+}
+.attention-count {
+    min-width: 26px;
+    padding: 3px 5px;
+    background: #faf0d7;
+    color: #7b5714;
+    border-radius: 6px;
+    font-weight: 750;
+    text-align: center;
+}
+@media (max-width: 600px) {
+    .attention-links {
+        grid-template-columns: minmax(0, 1fr);
+    }
+}
 .overview-grid > .activity-panel {
     grid-column: 1 / -1;
 }

@@ -80,7 +80,21 @@ function Overview({ onDetails }) {
         <div className="page-heading"><div><h1>Dashboard</h1><p>Pharmacy network and customer activity</p></div>
             <a className="button secondary" href="#pharmacies">Manage pharmacies <Icon name="arrow" /></a></div>
         <Notice error>{error}</Notice>
-        <div className="overview-grid"><div className="overview-main">
+        <div className="overview-grid">
+            <section className="panel attention-panel" aria-labelledby="attention-heading">
+                <header className="panel-header"><h2 id="attention-heading">Needs attention</h2></header>
+                <div className="attention-links">
+                    <a href="#pharmacies?status=pending"><Icon name="pharmacies" />
+                        <div><strong>Pending pharmacy approvals</strong></div>
+                        <span className="attention-count">{summary?.counts.pending ?? '—'}</span><Icon name="arrow" size={16} />
+                    </a>
+                    <a href="#reservations?deadline=upcoming"><Icon name="reservations" />
+                        <div><strong>Reservations nearing deadlines</strong><p>Due within 60 minutes</p></div>
+                        <span className="attention-count">{summary?.upcoming_reservations_count ?? '—'}</span><Icon name="arrow" size={16} />
+                    </a>
+                </div>
+            </section>
+            <div className="overview-main">
             <div className="stats-grid">{stats.map(([title, value, icon]) => <a className="stat stat-link" key={title} href={icon === 'reservations' ? '#reservations?status=completed' : '#' + icon}>
                 <span className="stat-icon"><Icon name={icon} /></span><div><p>{title}</p><strong>{value ?? '—'}</strong></div>
             </a>)}</div>
@@ -179,7 +193,9 @@ function App() {
         content = <Inventory />;
     } else if (tab === 'reservations') {
         const governorate = params.get('governorate') ?? '';
-        content = <Reservations onClearRoute={clearRouteFilters} key={status + ':' + governorate} initialStatus={status} initialGovernorate={governorate} />;
+        const deadline = params.get('deadline') === 'upcoming' ? 'upcoming' : '';
+        content = <Reservations onClearRoute={clearRouteFilters} key={status + ':' + governorate + ':' + deadline}
+            initialStatus={status} initialGovernorate={governorate} initialDeadline={deadline} />;
     } else if (tab === 'profile') {
         content = <ProfileSettings user={user} onUpdated={setUser} />;
     } else {

@@ -43,6 +43,7 @@ class DashboardSummaryController extends Controller
             ],
             'customers_count' => User::where('platform_role', PlatformRole::Customer->value)->count(),
             'completed_reservations_count' => Reservation::where('status', ReservationStatus::Completed->value)->count(),
+            'upcoming_reservations_count' => Reservation::query()->nearingDeadline()->count(),
             'owners_count' => Membership::where('role', MembershipRole::Owner->value)
                 ->where('is_active', true)->distinct()->count('user_id'),
             'recent_activity' => Pharmacy::query()
