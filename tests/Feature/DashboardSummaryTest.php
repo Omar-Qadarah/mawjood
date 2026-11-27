@@ -4,7 +4,9 @@ namespace Tests\Feature;
 
 use App\Enums\PharmacyStatus;
 use App\Enums\PlatformRole;
+use App\Enums\ReservationStatus;
 use App\Models\Pharmacy;
+use App\Models\Reservation;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -34,10 +36,22 @@ class DashboardSummaryTest extends TestCase
             $ids[$number] = $pharmacy->id;
         }
 
+        $customer = User::factory()->create();
+        foreach ([ReservationStatus::Completed, ReservationStatus::Pending] as $status) {
+            Reservation::create([
+                'code' => $status->value,
+                'user_id' => $customer->id,
+                'pharmacy_id' => $ids[2],
+                'status' => $status,
+                'idempotency_key' => $status->value,
+            ]);
+        }
+
         $this->actingAs($admin, 'web')
             ->getJson('/api/v1/admin/dashboard/summary')
             ->assertOk()
             ->assertJsonPath('counts', ['total' => 6, 'pending' => 5, 'active' => 1, 'suspended' => 0])
+            ->assertJsonPath('completed_reservations_count', 1)
             ->assertJsonCount(5, 'recent_pharmacies')
             ->assertJsonPath('recent_pharmacies.0.id', $ids[2])
             ->assertJsonPath('recent_pharmacies.1.id', $ids[1])

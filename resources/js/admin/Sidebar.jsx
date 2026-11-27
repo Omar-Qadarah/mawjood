@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Brand, Icon } from './ui';
 
-export const sections = { overview: 'Overview', pharmacies: 'Pharmacies', medicines: 'Medicines', inventory: 'Inventory', reservations: 'Reservations', customers: 'Customers', profile: 'Profile settings' };
+export const sections = { overview: 'Dashboard', pharmacies: 'Pharmacies', medicines: 'Medicines', inventory: 'Inventory', reservations: 'Reservations', customers: 'Customers', profile: 'Profile settings' };
 const navigation = Object.entries(sections).filter(([key]) => key !== 'profile');
 
 export function Sidebar({ user, tab, onLogout }) {

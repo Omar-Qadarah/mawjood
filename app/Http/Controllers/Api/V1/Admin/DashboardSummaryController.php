@@ -5,9 +5,11 @@ namespace App\Http\Controllers\Api\V1\Admin;
 use App\Enums\MembershipRole;
 use App\Enums\PharmacyStatus;
 use App\Enums\PlatformRole;
+use App\Enums\ReservationStatus;
 use App\Http\Controllers\Controller;
 use App\Models\Membership;
 use App\Models\Pharmacy;
+use App\Models\Reservation;
 use App\Models\User;
 use Illuminate\Http\JsonResponse;
 
@@ -40,6 +42,7 @@ class DashboardSummaryController extends Controller
                 'suspended' => (int) $totals->get(PharmacyStatus::Suspended->value, 0),
             ],
             'customers_count' => User::where('platform_role', PlatformRole::Customer->value)->count(),
+            'completed_reservations_count' => Reservation::where('status', ReservationStatus::Completed->value)->count(),
             'owners_count' => Membership::where('role', MembershipRole::Owner->value)
                 ->where('is_active', true)->distinct()->count('user_id'),
             'recent_activity' => Pharmacy::query()

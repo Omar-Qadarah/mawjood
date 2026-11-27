@@ -69,7 +69,7 @@ function Overview({ onDetails }) {
     const stats = [
         ['Pharmacies', summary?.counts.total, 'pharmacies'],
         ['Customers', summary?.customers_count, 'customers'],
-        ['Pharmacy owners', summary?.owners_count, 'customers'],
+        ['Completed reservations', summary?.completed_reservations_count, 'reservations'],
     ];
     const statuses = ['active', 'pending', 'suspended'];
     const total = summary?.counts.total ?? 0;
@@ -77,7 +77,7 @@ function Overview({ onDetails }) {
     const pendingEnd = total ? activeShare + (summary.counts.pending / total) * 100 : 0;
 
     return <section>
-        <div className="page-heading"><div><h1>Dashboard overview</h1><p>Pharmacy network and customer activity</p></div>
+        <div className="page-heading"><div><h1>Dashboard</h1><p>Pharmacy network and customer activity</p></div>
             <a className="button secondary" href="#pharmacies">Manage pharmacies <Icon name="arrow" /></a></div>
         <Notice error>{error}</Notice>
         <div className="overview-grid"><div className="overview-main">
@@ -85,6 +85,8 @@ function Overview({ onDetails }) {
                 <span className="stat-icon"><Icon name={icon} /></span><div><p>{title}</p><strong>{value ?? '—'}</strong></div>
             </div>)}</div>
             <RegistrationTrend registrations={summary?.registrations} />
+        </div>
+            <JordanMap sites={sites} />
             <section className="panel recent-panel"><header className="panel-header"><div><h2>Recently added pharmacies</h2><p>Latest records in the directory</p></div>
                 <a className="text-button" href="#pharmacies">View all</a></header>
                 <div className="table-scroll"><table><thead><tr><th scope="col">Pharmacy</th><th scope="col">Added</th><th scope="col">Status</th></tr></thead>
@@ -94,8 +96,6 @@ function Overview({ onDetails }) {
                     </tr>) : <tr><td className="empty" colSpan="3">{summary ? 'No pharmacies have been added yet.' : 'Loading pharmacies…'}</td></tr>}</tbody>
                 </table></div>
             </section>
-        </div><aside className="overview-side">
-            <JordanMap sites={sites} />
             <section className="panel status-panel"><header className="panel-header"><div><h2>Pharmacy status</h2><p>Listings by review status</p></div></header>
                 <div className="status-layout">
                     <div className="status-ring" role="img" aria-label={Math.round(activeShare) + '% active'}
@@ -115,7 +115,7 @@ function Overview({ onDetails }) {
                     <Status status={pharmacy.status} />
                 </li>)}</ul> : <p className="empty">{summary ? 'No pharmacy updates yet.' : 'Loading activity…'}</p>}
             </section>
-        </aside></div>
+        </div>
     </section>;
 }
 
