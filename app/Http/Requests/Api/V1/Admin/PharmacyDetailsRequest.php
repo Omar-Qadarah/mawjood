@@ -3,6 +3,7 @@
 namespace App\Http\Requests\Api\V1\Admin;
 
 use App\Enums\PharmacyStatus;
+use App\Rules\PharmacyName;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Validator;
@@ -42,8 +43,8 @@ abstract class PharmacyDetailsRequest extends FormRequest
         }
 
         return [
-            'name_ar' => [...$required, 'string', 'max:150'],
-            'name_en' => [...$required, 'string', 'max:150'],
+            'name_ar' => [...$required, 'string', 'max:150', PharmacyName::ARABIC],
+            'name_en' => [...$required, 'string', 'max:150', PharmacyName::ENGLISH],
             'license_no' => [...$required, 'string', 'max:100', $license],
             'phone' => ['sometimes', 'nullable', 'string', 'regex:/^\+962(?:7[0-9]{8}|[2356][0-9]{7})$/D'],
             'email' => ['sometimes', 'nullable', 'email', 'max:190'],
@@ -53,8 +54,10 @@ abstract class PharmacyDetailsRequest extends FormRequest
             'latitude' => [...$required, 'numeric', 'between:29,33.5'],
             'longitude' => [...$required, 'numeric', 'between:34.9,39.4'],
             'opening_hours' => ['sometimes', 'nullable', 'array', 'list', 'max:100'],
-            'opening_hours.*' => ['required', 'array:date,opens_at,closes_at'],
-            'opening_hours.*.date' => ['required', 'date_format:Y-m-d'],
+            'opening_hours.*' => ['required', 'array:day,date,opens_at,closes_at'],
+            'opening_hours.*.day' => ['required_without:opening_hours.*.date', 'prohibits:opening_hours.*.date',
+                Rule::in(['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'])],
+            'opening_hours.*.date' => ['required_without:opening_hours.*.day', 'date_format:Y-m-d'],
             'opening_hours.*.opens_at' => ['required', 'date_format:H:i'],
             'opening_hours.*.closes_at' => ['required', 'date_format:H:i', 'after:opening_hours.*.opens_at'],
             'status' => ['sometimes', Rule::enum(PharmacyStatus::class)],
@@ -79,16 +82,16 @@ abstract class PharmacyDetailsRequest extends FormRequest
                     }
                 }
 
-                $byDate = [];
+                $byDay = [];
                 foreach ($this->input('opening_hours') ?? [] as $slot) {
-                    $byDate[$slot['date']][] = $slot;
+                    $byDay[$slot['day'] ?? $slot['date']][] = $slot;
                 }
-                foreach ($byDate as $slots) {
+                foreach ($byDay as $slots) {
                     usort($slots, fn (array $first, array $second) => $first['opens_at'] <=> $second['opens_at']);
                     $lastClose = '';
                     foreach ($slots as $slot) {
                         if ($slot['opens_at'] < $lastClose) {
-                            $validator->errors()->add('opening_hours', 'Opening time slots on the same date cannot overlap.');
+                            $validator->errors()->add('opening_hours', 'Opening time slots on the same day cannot overlap.');
 
                             return;
                         }
@@ -101,6 +104,10 @@ abstract class PharmacyDetailsRequest extends FormRequest
 
     public function messages(): array
     {
-        return ['phone.regex' => 'Enter a Jordanian mobile or landline number, such as 079 123 4567 or 06 123 4567.'];
+        return [
+            'name_ar.regex' => 'Enter the Arabic name using Arabic letters.',
+            'name_en.regex' => 'Enter the English name using English letters.',
+            'phone.regex' => 'Enter a Jordanian mobile or landline number, such as 079 123 4567 or 06 123 4567.',
+        ];
     }
 }
