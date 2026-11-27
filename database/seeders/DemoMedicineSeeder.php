@@ -11,45 +11,42 @@ class DemoMedicineSeeder extends Seeder
 {
     public function run(): void
     {
-        DB::transaction(function (): void {
-            $medicine = Medicine::firstOrCreate([
-                'name_en' => 'Mawjood Demo Package',
-                'manufacturer_name' => 'Mawjood Demo',
-            ], [
-                'generic_name_en' => 'Paracetamol and caffeine',
-                'generic_name_ar' => 'باراسيتامول وكافيين',
-                'name_ar' => 'عبوة موجود التجريبية',
-                'dosage_form' => 'tablet',
-                'route' => 'oral',
-                'strength_text' => '500 mg / 65 mg per tablet',
-                'brand_name' => '',
-                'pack_size' => '12.000',
-                'pack_unit' => 'tablet',
-                'dispensing_class' => 'otc',
-                'search_normalized' => 'mawjood demo package paracetamol caffeine باراسيتامول كافيين',
-                'catalog_status' => 'active',
-            ]);
+        $packages = require __DIR__.'/data/demo_medicines.php';
 
-            $ingredients = [
-                ['name_en' => 'Paracetamol', 'name_ar' => 'باراسيتامول', 'strength' => '500.0000'],
-                ['name_en' => 'Caffeine', 'name_ar' => 'كافيين', 'strength' => '65.0000'],
-            ];
+        DB::transaction(function () use ($packages): void {
+            foreach ($packages as $package) {
+                $details = $package['medicine'];
+                $medicine = Medicine::firstOrCreate([
+                    'name_en' => $details['name_en'],
+                    'manufacturer_name' => 'Mawjood Demo',
+                ], $details + [
+                    'brand_name' => '',
+                    'search_normalized' => mb_strtolower(implode(' ', [
+                        $details['name_en'],
+                        $details['name_ar'],
+                        $details['generic_name_en'],
+                        $details['generic_name_ar'],
+                        $details['strength_text'],
+                    ])),
+                    'catalog_status' => 'active',
+                ]);
 
-            foreach ($ingredients as $data) {
-                $ingredient = ActiveIngredient::firstOrCreate(
-                    ['name_en' => $data['name_en']],
-                    ['name_ar' => $data['name_ar']],
-                );
+                foreach ($package['ingredients'] as $component) {
+                    $ingredient = ActiveIngredient::firstOrCreate(
+                        ['name_en' => $component['name_en']],
+                        ['name_ar' => $component['name_ar']],
+                    );
 
-                $medicine->ingredients()->firstOrCreate(
-                    ['active_ingredient_id' => $ingredient->id],
-                    [
-                        'strength_value' => $data['strength'],
-                        'strength_unit' => 'mg',
-                        'per_value' => '1.0000',
-                        'per_unit' => 'tablet',
-                    ],
-                );
+                    $medicine->ingredients()->firstOrCreate(
+                        ['active_ingredient_id' => $ingredient->id],
+                        [
+                            'strength_value' => $component['strength_value'],
+                            'strength_unit' => $component['strength_unit'],
+                            'per_value' => $component['per_value'],
+                            'per_unit' => $component['per_unit'],
+                        ],
+                    );
+                }
             }
         });
     }
