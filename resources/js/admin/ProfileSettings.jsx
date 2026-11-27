@@ -81,12 +81,11 @@ export function ProfileSettings({ user, onUpdated }) {
                 {feedback.section === 'profile' && <Notice error={feedback.error}>{feedback.message}</Notice>}
                 <Field label="Name"><input key={user.name} name="name" defaultValue={user.name} autoComplete="name" maxLength={255} required /></Field>
                 <div className="profile-photo">
-                    {previewUrl ? <button ref={previewButton} className="avatar profile-avatar profile-preview-button" type="button"
-                        aria-label="Enlarge photo preview" aria-haspopup="dialog" onClick={() => setEnlarged(true)}>
-                        <img src={displayedPreview} alt="" />
-                    </button> : <span className="avatar profile-avatar">
-                        {user.avatar_url ? <img src={user.avatar_url} alt="Profile photo" /> : user.name?.slice(0, 1).toUpperCase()}
-                    </span>}
+                    {displayedPreview || user.avatar_url ? <button ref={previewButton} className="avatar profile-avatar profile-preview-button" type="button"
+                        aria-label={previewUrl ? "Enlarge photo preview" : "View current profile photo full screen"}
+                        aria-haspopup="dialog" onClick={() => setEnlarged(true)}>
+                        <img src={displayedPreview ?? user.avatar_url} alt="" />
+                    </button> : <span className="avatar profile-avatar">{user.name?.slice(0, 1).toUpperCase()}</span>}
                     <div className="profile-photo-control">
                         <Field label="Profile photo"><input ref={photoInput} type="file" name="avatar" accept="image/jpeg,image/png,image/webp" aria-describedby="profile-photo-help"
                             disabled={saving === 'profile'} onChange={event => previewPhoto(event.target.files[0])} /></Field>
@@ -106,6 +105,9 @@ export function ProfileSettings({ user, onUpdated }) {
                 <button className="button primary" disabled={Boolean(saving)}>{saving === 'password' ? 'Changing…' : 'Change password'}</button>
             </form>
         </div>
+        {enlarged && !previewUrl && user.avatar_url && <Modal title="Current profile photo" onClose={closeEnlargedPreview}>
+            <img className="profile-current-image" src={user.avatar_url} alt="Current profile photo" />
+        </Modal>}
         {enlarged && previewUrl && <Modal title={cropping ? "Crop photo" : "Photo preview"} onClose={closeEnlargedPreview}>
             {cropping ? <ProfilePhotoCrop source={previewUrl} initialCrop={crop?.settings} onApply={applyCrop}
                 onBack={() => setCropping(false)} /> : <>
