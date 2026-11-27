@@ -55,6 +55,34 @@ class AdminMedicineWriteTest extends TestCase
         $this->deleteJson(self::INGREDIENTS.'/'.$first)->assertNoContent();
     }
 
+    public function test_localized_catalog_names_reject_the_wrong_script_on_create_and_update(): void
+    {
+        $this->actingAs($this->admin(), 'web');
+
+        $wrongNames = ['name_en' => 'Vitamin فيتامين', 'name_ar' => 'فيتامين Vitamin'];
+        $this->postJson(self::INGREDIENTS, $wrongNames)
+            ->assertUnprocessable()->assertJsonValidationErrors(array_keys($wrongNames));
+
+        $ingredient = $this->postJson(self::INGREDIENTS, ['name_en' => 'Vitamin B12', 'name_ar' => 'فيتامين ١٢'])
+            ->assertCreated()->json('data.id');
+        $this->patchJson(self::INGREDIENTS.'/'.$ingredient, $wrongNames)
+            ->assertUnprocessable()->assertJsonValidationErrors(array_keys($wrongNames));
+
+        $wrongMedicineNames = $wrongNames + ['generic_name_en' => 'فيتامين', 'generic_name_ar' => 'Vitamin'];
+        $package = $this->package() + ['ingredients' => [$this->ingredientComponent($ingredient, '2')]];
+        $this->postJson(self::MEDICINES, $wrongMedicineNames + $package)
+            ->assertUnprocessable()->assertJsonValidationErrors(array_keys($wrongMedicineNames));
+
+        $medicine = $this->postJson(self::MEDICINES, [
+            'name_en' => 'Vitamin B12 (Tablets)',
+            'name_ar' => 'فيتامين ١٢ (أقراص)',
+            'generic_name_en' => 'Vitamin B12',
+            'generic_name_ar' => 'فيتامين ١٢',
+        ] + $package)->assertCreated()->json('data.id');
+        $this->patchJson(self::MEDICINES.'/'.$medicine, $wrongMedicineNames)
+            ->assertUnprocessable()->assertJsonValidationErrors(array_keys($wrongMedicineNames));
+    }
+
     public function test_invalid_compositions_are_rejected_without_writing_a_package(): void
     {
         $this->actingAs($this->admin(), 'web');

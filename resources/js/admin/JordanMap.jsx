@@ -66,10 +66,29 @@ export function JordanMap({ sites }) {
                 layer.bindTooltip(name, { sticky: true, className: 'region-tooltip' });
             },
         }).addTo(map);
-        map.fitBounds(regions.getBounds(), { padding: [12, 12] });
+        const container = host.current;
+        const bounds = regions.getBounds();
+        let width = container.clientWidth;
+        let height = container.clientHeight;
+        map.fitBounds(bounds, { padding: [12, 12] });
+        const resize = new ResizeObserver(() => {
+            const nextWidth = container.clientWidth;
+            const nextHeight = container.clientHeight;
+            if (!nextWidth || !nextHeight || (width === nextWidth && height === nextHeight)) return;
+
+            width = nextWidth;
+            height = nextHeight;
+            map.invalidateSize({ pan: false });
+            map.fitBounds(bounds, { padding: [12, 12], animate: false });
+        });
+        resize.observe(container);
         instance.current = regions;
 
-        return () => { instance.current = null; map.remove(); };
+        return () => {
+            resize.disconnect();
+            instance.current = null;
+            map.remove();
+        };
     }, []);
 
     useEffect(() => {

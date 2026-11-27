@@ -3,7 +3,7 @@
 namespace App\Http\Requests\Api\V1\Admin;
 
 use App\Enums\PharmacyStatus;
-use App\Rules\PharmacyName;
+use App\Rules\LocalizedName;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Validator;
@@ -43,8 +43,8 @@ abstract class PharmacyDetailsRequest extends FormRequest
         }
 
         return [
-            'name_ar' => [...$required, 'string', 'max:150', PharmacyName::ARABIC],
-            'name_en' => [...$required, 'string', 'max:150', PharmacyName::ENGLISH],
+            'name_ar' => [...$required, 'string', 'max:150', LocalizedName::ARABIC],
+            'name_en' => [...$required, 'string', 'max:150', LocalizedName::ENGLISH],
             'license_no' => [...$required, 'string', 'max:100', $license],
             'phone' => ['sometimes', 'nullable', 'string', 'regex:/^\+962(?:7[0-9]{8}|[2356][0-9]{7})$/D'],
             'email' => ['sometimes', 'nullable', 'email', 'max:190'],

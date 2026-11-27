@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Api\V1\Admin;
 
+use App\Rules\LocalizedName;
 use Illuminate\Foundation\Http\FormRequest;
 
 class SaveMedicineRequest extends FormRequest
@@ -16,10 +17,10 @@ class SaveMedicineRequest extends FormRequest
         $required = $this->isMethod('PATCH') ? ['sometimes', 'required'] : ['required'];
 
         return [
-            'name_en' => [...$required, 'string', 'max:200'],
-            'name_ar' => ['nullable', 'string', 'max:200'],
-            'generic_name_en' => [...$required, 'string', 'max:200'],
-            'generic_name_ar' => ['nullable', 'string', 'max:200'],
+            'name_en' => [...$required, 'string', 'max:200', LocalizedName::CATALOG_ENGLISH],
+            'name_ar' => ['nullable', 'string', 'max:200', LocalizedName::CATALOG_ARABIC],
+            'generic_name_en' => [...$required, 'string', 'max:200', LocalizedName::CATALOG_ENGLISH],
+            'generic_name_ar' => ['nullable', 'string', 'max:200', LocalizedName::CATALOG_ARABIC],
             'dosage_form' => [...$required, 'string', 'max:40'],
             'route' => [...$required, 'string', 'max:40'],
             'brand_name' => ['nullable', 'string', 'max:150'],
@@ -42,6 +43,16 @@ class SaveMedicineRequest extends FormRequest
             'ingredients.*.strength_unit' => ['required', 'string', 'max:10'],
             'ingredients.*.per_value' => ['nullable', 'required_with:ingredients.*.per_unit', 'numeric', 'gt:0', 'decimal:0,4', 'max:99999999.9999'],
             'ingredients.*.per_unit' => ['nullable', 'required_with:ingredients.*.per_value', 'string', 'max:10'],
+        ];
+    }
+
+    public function messages(): array
+    {
+        return [
+            'name_en.regex' => 'Enter the English product name using English letters.',
+            'name_ar.regex' => 'Enter the Arabic product name using Arabic letters.',
+            'generic_name_en.regex' => 'Enter the English generic name using English letters.',
+            'generic_name_ar.regex' => 'Enter the Arabic generic name using Arabic letters.',
         ];
     }
 }

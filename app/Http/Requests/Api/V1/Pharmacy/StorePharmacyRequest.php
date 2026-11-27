@@ -2,7 +2,7 @@
 
 namespace App\Http\Requests\Api\V1\Pharmacy;
 
-use App\Rules\PharmacyName;
+use App\Rules\LocalizedName;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -17,9 +17,9 @@ class StorePharmacyRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'name_ar' => ['required', 'string', 'max:150', PharmacyName::ARABIC],
+            'name_ar' => ['required', 'string', 'max:150', LocalizedName::ARABIC],
 
-            'name_en' => ['required', 'string', 'max:150', PharmacyName::ENGLISH],
+            'name_en' => ['required', 'string', 'max:150', LocalizedName::ENGLISH],
 
             'license_no' => [
                 'required',
