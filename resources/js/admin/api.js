@@ -2,7 +2,7 @@ const settings = document.querySelector('#mawjood-admin').dataset;
 
 export const places = JSON.parse(settings.places);
 
-export async function api(path, { method = 'GET', body } = {}) {
+export async function api(path, { method = 'GET', body, signal } = {}) {
     const headers = { Accept: 'application/json' };
     const multipart = body instanceof FormData;
     if (body !== undefined && !multipart) {
@@ -14,7 +14,7 @@ export async function api(path, { method = 'GET', body } = {}) {
     }
 
     const response = await fetch(settings.apiBase + path, {
-        method, headers, credentials: 'same-origin',
+        method, headers, signal, credentials: 'same-origin',
         body: multipart || body === undefined ? body : JSON.stringify(body),
     });
     const result = response.status === 204 ? null : await response.json().catch(() => null);

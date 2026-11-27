@@ -5,7 +5,7 @@ import { QuickJump } from './QuickJump';
 export const sections = { overview: 'Dashboard', pharmacies: 'Pharmacies', medicines: 'Medicines', inventory: 'Inventory', reservations: 'Reservations', customers: 'Customers', profile: 'Profile settings' };
 const navigation = Object.entries(sections).filter(([key]) => key !== 'profile');
 
-export function Sidebar({ user, tab, onLogout }) {
+export function Sidebar({ user, tab, onLogout, onOpenRecord }) {
     const [menu, setMenu] = useState(null);
     const [dragOffset, setDragOffset] = useState(null);
     const account = useRef(null);
@@ -113,7 +113,7 @@ export function Sidebar({ user, tab, onLogout }) {
             <Icon name="menu" size={22} />
         </button>
         <Brand />
-        <QuickJump sections={sections} />
+        <QuickJump sections={sections} onOpenRecord={onOpenRecord} />
         <div className="navigation-edge" aria-hidden="true" hidden={menu === 'navigation'}
             onPointerDown={event => startSwipe(event, true)} onPointerMove={moveSwipe} onPointerUp={finishSwipe}
             onPointerCancel={cancelSwipe} onLostPointerCapture={cancelSwipe} />

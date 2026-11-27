@@ -35,12 +35,16 @@ export function ProfileSettings({ user, onUpdated }) {
             <form className="panel profile-form" onSubmit={(event) => save(event, 'profile')} aria-label="Profile details">
                 <h2>Profile details</h2>
                 {feedback.section === 'profile' && <Notice error={feedback.error}>{feedback.message}</Notice>}
-                <span className="avatar profile-avatar">
-                    {user.avatar_url ? <img src={user.avatar_url} alt="Profile photo" /> : user.name?.slice(0, 1).toUpperCase()}
-                </span>
                 <Field label="Name"><input key={user.name} name="name" defaultValue={user.name} autoComplete="name" maxLength={255} required /></Field>
-                <Field label="Profile photo"><input type="file" name="avatar" accept="image/jpeg,image/png,image/webp" aria-describedby="profile-photo-help" /></Field>
-                <p id="profile-photo-help">JPEG, PNG, or WebP up to 2 MB.</p>
+                <div className="profile-photo">
+                    <span className="avatar profile-avatar">
+                        {user.avatar_url ? <img src={user.avatar_url} alt="Profile photo" /> : user.name?.slice(0, 1).toUpperCase()}
+                    </span>
+                    <div className="profile-photo-control">
+                        <Field label="Profile photo"><input type="file" name="avatar" accept="image/jpeg,image/png,image/webp" aria-describedby="profile-photo-help" /></Field>
+                        <p id="profile-photo-help">JPEG, PNG, or WebP up to 2 MB.</p>
+                    </div>
+                </div>
                 <button className="button primary" disabled={Boolean(saving)}>{saving === 'profile' ? 'Saving…' : 'Save profile'}</button>
             </form>
             <form className="panel profile-form" onSubmit={(event) => save(event, 'password')} aria-label="Change password">

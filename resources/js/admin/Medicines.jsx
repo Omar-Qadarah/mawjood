@@ -16,7 +16,7 @@ function unitBasis(component) {
     return [numberText(component.per_value), component.per_unit].filter(Boolean).join(' ');
 }
 
-function MedicineDetails({ summary, onClose }) {
+export function MedicineDetails({ summary, onClose }) {
     const [medicine, setMedicine] = useState(null);
     const [error, setError] = useState('');
 

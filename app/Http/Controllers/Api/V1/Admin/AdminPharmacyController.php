@@ -20,6 +20,7 @@ class AdminPharmacyController extends Controller
     {
         $filters = $request->validate([
             'search' => ['sometimes', 'string', 'max:100'],
+            'name' => ['sometimes', 'string', 'max:100'],
             'governorate' => ['sometimes', Rule::in(array_keys(config('jordan')))],
             'city' => ['sometimes', 'string', 'max:100'],
             'status' => ['sometimes', Rule::enum(PharmacyStatus::class)],
@@ -27,6 +28,11 @@ class AdminPharmacyController extends Controller
 
         $pharmacies = Pharmacy::query()
             ->withCount('memberships')
+            ->when(isset($filters['name']), function ($query) use ($filters): void {
+                $pattern = '%'.strtr($filters['name'], ['!' => '!!', '%' => '!%', '_' => '!_']).'%';
+                $query->where(fn ($names) => $names->whereRaw("name_en LIKE ? ESCAPE '!'", [$pattern])
+                    ->orWhereRaw("name_ar LIKE ? ESCAPE '!'", [$pattern]));
+            })
             ->when($filters['search'] ?? null, function ($query, string $search): void {
                 $query->where(function ($query) use ($search): void {
                     $query->where('name_ar', 'like', "%{$search}%")

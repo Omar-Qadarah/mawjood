@@ -20,9 +20,16 @@ class MedicineController extends Controller
     {
         $filters = $request->validate([
             'search' => ['nullable', 'string', 'max:150'],
+            'name' => ['sometimes', 'string', 'max:100'],
             'catalog_status' => ['nullable', 'string', 'max:20'],
         ]);
         $medicines = Medicine::query();
+
+        if (isset($filters['name'])) {
+            $pattern = '%'.strtr($filters['name'], ['!' => '!!', '%' => '!%', '_' => '!_']).'%';
+            $medicines->where(fn ($names) => $names->whereRaw("name_en LIKE ? ESCAPE '!'", [$pattern])
+                ->orWhereRaw("name_ar LIKE ? ESCAPE '!'", [$pattern]));
+        }
 
         if (isset($filters['search'])) {
             $medicines->matchingCatalogSearch($filters['search']);

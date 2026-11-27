@@ -4,7 +4,7 @@ import { api, signIn } from './api';
 import { Brand, Field, Icon, Notice, Status } from './ui';
 import { Directory, RecordDetails } from './Directory';
 import { JordanMap } from './JordanMap';
-import { Medicines } from './Medicines';
+import { MedicineDetails, Medicines } from './Medicines';
 import { Inventory } from './Inventory';
 import { Reservations } from './Reservations';
 import { RegistrationTrend } from './RegistrationTrend';
@@ -151,6 +151,11 @@ function App() {
         }
     }
 
+    function openQuickJumpRecord(entity, record) {
+        if (entity === 'medicines') setDetail({ entity, record });
+        else openDetails(entity, record.id);
+    }
+
     async function logout() {
         try {
             await api('/auth/logout', { method: 'POST' });
@@ -186,12 +191,14 @@ function App() {
     }
 
     return <div className="workspace">
-        <Sidebar user={user} tab={tab} onLogout={logout} />
+        <Sidebar user={user} tab={tab} onLogout={logout} onOpenRecord={openQuickJumpRecord} />
         <main className="content">
             <Notice error={message?.error}>{message?.text}</Notice>
             {content}
         </main>
-        {detail && <RecordDetails {...detail} onClose={() => setDetail(null)} />}
+        {detail && (detail.entity === 'medicines'
+            ? <MedicineDetails summary={detail.record} onClose={() => setDetail(null)} />
+            : <RecordDetails {...detail} onClose={() => setDetail(null)} />)}
     </div>;
 }
 

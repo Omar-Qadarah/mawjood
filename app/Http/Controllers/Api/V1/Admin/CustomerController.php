@@ -18,12 +18,17 @@ class CustomerController extends Controller
     {
         $filters = $request->validate([
             'search' => ['sometimes', 'string', 'max:100'],
+            'name' => ['sometimes', 'string', 'max:100'],
             'status' => ['sometimes', 'in:active,inactive'],
         ]);
 
         $customers = User::query()
             ->where('platform_role', PlatformRole::Customer->value)
             ->withCount('memberships')
+            ->when(isset($filters['name']), function ($query) use ($filters): void {
+                $pattern = '%'.strtr($filters['name'], ['!' => '!!', '%' => '!%', '_' => '!_']).'%';
+                $query->whereRaw("name LIKE ? ESCAPE '!'", [$pattern]);
+            })
             ->when($filters['search'] ?? null, function ($query, string $search): void {
                 $query->where(function ($query) use ($search): void {
                     $query->where('name', 'like', "%{$search}%")
