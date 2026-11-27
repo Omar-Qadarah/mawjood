@@ -6,6 +6,7 @@ use App\Actions\Reservation\CreateReservationAction;
 use App\Enums\PlatformRole;
 use App\Enums\ReservationStatus;
 use App\Models\InventoryItem;
+use App\Models\Pharmacy;
 use App\Models\Reservation;
 use App\Models\User;
 use Database\Seeders\DemoInventorySeeder;
@@ -73,6 +74,28 @@ class AdminReservationTest extends TestCase
             ->assertJsonPath('data.0.pickup_deadline', $pickup->toISOString())
             ->assertJsonPath('data.0.held_quantity', 50);
         $this->getJson(self::ENDPOINT.'/999999')->assertNotFound();
+    }
+
+    public function test_governorate_filter_combines_with_completed_status(): void
+    {
+        $completed = $this->createReservation();
+        $completed->pharmacy->update(['governorate' => 'Amman']);
+        $completed->update(['status' => ReservationStatus::Completed]);
+        $aqaba = Pharmacy::create([
+            'name_en' => 'Aqaba Preview', 'name_ar' => 'العقبة', 'license_no' => 'AQ-RESERVATIONS',
+            'address' => 'Test address', 'city' => 'Aqaba', 'governorate' => 'Aqaba', 'latitude' => 29.55, 'longitude' => 35,
+        ]);
+        foreach ([[$aqaba->id, ReservationStatus::Completed], [$completed->pharmacy_id, ReservationStatus::Pending]] as [$pharmacyId, $status]) {
+            Reservation::create([
+                'code' => 'RES-'.$status->value[0], 'user_id' => $completed->user_id,
+                'pharmacy_id' => $pharmacyId, 'status' => $status, 'idempotency_key' => $status->value,
+            ]);
+        }
+        $this->actingAs(User::factory()->create(['platform_role' => PlatformRole::Admin, 'is_active' => true]), 'web');
+        $this->getJson(self::ENDPOINT.'?status=completed')->assertOk()->assertJsonPath('meta.total', 2);
+        $this->getJson(self::ENDPOINT.'?status=completed&governorate=Amman')->assertOk()
+            ->assertJsonPath('meta.total', 1)->assertJsonPath('data.0.id', $completed->id);
+        $this->getJson(self::ENDPOINT.'?governorate=unknown')->assertUnprocessable()->assertJsonValidationErrors('governorate');
     }
 
     public function test_only_active_admins_can_read_reservations(): void

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { api } from './api';
+import { api, places } from './api';
 import { Details, Field, Modal, Notice, Status } from './ui';
 
 const endpoint = '/admin/reservations';
@@ -154,8 +154,12 @@ function ReservationDetails({ id, code, onClose, onReviewed }) {
     </Modal>;
 }
 
-export function Reservations() {
-    const [filter, setFilter] = useState({ status: '', page: 1 });
+export function Reservations({ initialStatus = '', initialGovernorate = '' }) {
+    const [filter, setFilter] = useState({
+        status: statuses.includes(initialStatus) ? initialStatus : '',
+        governorate: Object.hasOwn(places, initialGovernorate) ? initialGovernorate : '',
+        page: 1,
+    });
     const [result, setResult] = useState(null);
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(true);
@@ -165,6 +169,7 @@ export function Reservations() {
         let current = true;
         const params = new URLSearchParams({ page: filter.page });
         if (filter.status) params.set('status', filter.status);
+        if (filter.governorate) params.set('governorate', filter.governorate);
 
         api(endpoint + '?' + params)
             .then((response) => { if (current) setResult(response); })
@@ -180,10 +185,10 @@ export function Reservations() {
     }
 
     const rows = result?.data ?? [];
-    let emptyText = 'No reservations match this status.';
+    let emptyText = 'No reservations match these filters.';
     if (loading) emptyText = 'Loading reservations…';
     else if (error) emptyText = 'Reservation results are unavailable.';
-    else if (!filter.status) emptyText = 'No reservations have been placed yet.';
+    else if (!filter.status && !filter.governorate) emptyText = 'No reservations have been placed yet.';
 
     return <section aria-labelledby="reservations-heading">
         <div className="page-heading"><div><h1 id="reservations-heading">Reservations</h1>
@@ -191,6 +196,10 @@ export function Reservations() {
         <Notice error>{error}</Notice>
         <div className="panel directory" aria-busy={loading}>
             <div className="table-filters">
+                <Field label="Governorate"><select value={filter.governorate} onChange={(event) => changeFilter({ governorate: event.target.value })}>
+                    <option value="">All governorates</option>
+                    {Object.keys(places).map((name) => <option key={name}>{name}</option>)}
+                </select></Field>
                 <Field label="Status"><select value={filter.status} onChange={(event) => changeFilter({ status: event.target.value })}>
                     <option value="">All statuses</option>
                     {statuses.map((status) => <option key={status} value={status}>{status[0].toUpperCase() + status.slice(1)}</option>)}

@@ -7,27 +7,6 @@ import { Icon } from './ui';
 const governorateNames = { "Ma'an": 'Maan', Tafilah: 'Tafileh' };
 const regionName = (feature) => governorateNames[feature.properties.shapeName] ?? feature.properties.shapeName;
 
-function containsPoint(ring, x, y) {
-    let contains = false;
-    for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
-        const [a, b] = ring[i];
-        const [c, d] = ring[j];
-        if ((b > y) !== (d > y) && x < ((c - a) * (y - b)) / (d - b) + a) contains = !contains;
-    }
-    return contains;
-}
-
-function locateSite(site) {
-    if (site.governorate) return site.governorate;
-    const point = [Number(site.longitude), Number(site.latitude)];
-    const region = boundaries.features.find(({ geometry }) => {
-        const polygons = geometry.type === 'Polygon' ? [geometry.coordinates] : geometry.coordinates;
-        return polygons.some(([outline, ...holes]) =>
-            containsPoint(outline, ...point) && !holes.some((hole) => containsPoint(hole, ...point)));
-    });
-    return region ? regionName(region) : null;
-}
-
 const regionStyle = { color: '#fff', weight: 1.5, fillColor: '#e3e6f0', fillOpacity: 1 };
 const highlighted = { ...regionStyle, fillColor: '#8061d2' };
 
@@ -36,8 +15,16 @@ export function JordanMap({ sites }) {
     const instance = useRef(null);
     const [hovered, setHovered] = useState('');
     const [selected, setSelected] = useState('');
-    const visibleRegion = hovered || selected;
-    const regionSites = visibleRegion ? sites.filter((site) => locateSite(site) === visibleRegion) : [];
+    const visibleRegion = selected || hovered;
+    const regionSites = visibleRegion ? (sites ?? []).filter((site) => site.governorate === visibleRegion) : sites ?? [];
+    const scope = visibleRegion || 'Jordan';
+
+    function directoryLink(section, status) {
+        const filters = new URLSearchParams();
+        if (visibleRegion) filters.set('governorate', visibleRegion);
+        if (status) filters.set('status', status);
+        return '#' + section + (filters.size ? '?' + filters : '');
+    }
     const active = regionSites.filter((site) => site.status === 'active').length;
     const completed = regionSites.reduce((total, site) => total + site.completed_reservations, 0);
     const sales = new Map();
@@ -53,10 +40,14 @@ export function JordanMap({ sites }) {
             style: regionStyle,
             onEachFeature(feature, layer) {
                 const name = regionName(feature);
+                function toggleRegion() {
+                    setHovered('');
+                    setSelected((value) => value === name ? '' : name);
+                }
                 layer.on({
                     mouseover: () => setHovered(name),
                     mouseout: () => setHovered(''),
-                    click: () => setSelected((value) => value === name ? '' : name),
+                    click: toggleRegion,
                 });
                 layer.on('add', () => {
                     const element = layer.getElement();
@@ -68,7 +59,7 @@ export function JordanMap({ sites }) {
                     element.addEventListener('keydown', (event) => {
                         if (event.key === 'Enter' || event.key === ' ') {
                             event.preventDefault();
-                            setSelected((value) => value === name ? '' : name);
+                            toggleRegion();
                         }
                     });
                 });
@@ -90,15 +81,23 @@ export function JordanMap({ sites }) {
         <header className="panel-header"><div><h2>Pharmacy sites in Jordan</h2><p>Explore by governorate</p></div><span className="map-symbol"><Icon name="location" /></span></header>
         <div className="jordan-map" ref={host} aria-label="Interactive map of Jordan" />
         <div className="map-info" aria-live="polite">
-            {visibleRegion ? <>
-                <div className="map-info-head"><strong>{visibleRegion}</strong><span>All time</span></div>
-                <dl className="map-insights">
-                    <div><dt>Total pharmacies</dt><dd>{regionSites.length}</dd></div>
-                    <div><dt>Active pharmacies</dt><dd>{active}</dd></div>
-                    <div><dt>Completed reservations</dt><dd>{completed}</dd></div>
-                    <div><dt>Collected sales value</dt><dd>{salesLabels.length ? salesLabels.join(' · ') : '0'}</dd></div>
-                </dl>
-            </> : <p>Hover over or select a governorate to see its insights.</p>}
+            <div className="map-info-head">
+                <strong>{scope}</strong>
+                {selected ? <button type="button" className="text-button" onClick={() => { setSelected(''); setHovered(''); }}>All Jordan</button>
+                    : <span>All time</span>}
+            </div>
+            <dl className="map-insights">
+                <div className="map-insight-link"><dt><a href={directoryLink('pharmacies')} aria-label={'Total pharmacies in ' + scope}>
+                    Total pharmacies <Icon name="arrow" size={13} />
+                </a></dt><dd>{sites ? regionSites.length : '—'}</dd></div>
+                <div className="map-insight-link"><dt><a href={directoryLink('pharmacies', 'active')} aria-label={'Active pharmacies in ' + scope}>
+                    Active pharmacies <Icon name="arrow" size={13} />
+                </a></dt><dd>{sites ? active : '—'}</dd></div>
+                <div className="map-insight-link"><dt><a href={directoryLink('reservations', 'completed')} aria-label={'Completed reservations in ' + scope}>
+                    Completed reservations <Icon name="arrow" size={13} />
+                </a></dt><dd>{sites ? completed : '—'}</dd></div>
+                <div><dt>Collected sales value</dt><dd>{salesLabels.length ? salesLabels.join(' · ') : sites ? '0' : '—'}</dd></div>
+            </dl>
         </div>
         <a className="map-credit" href="https://www.geoboundaries.org/api/current/gbOpen/JOR/ADM1/" target="_blank" rel="noreferrer">Boundaries: geoBoundaries / Wikimedia</a>
     </section>;

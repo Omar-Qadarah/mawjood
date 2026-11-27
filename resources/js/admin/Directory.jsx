@@ -62,11 +62,17 @@ export function RecordDetails({ entity, record, onClose }) {
     </Modal>;
 }
 
-export function Directory({ entity, onChanged, onDetails }) {
+export function Directory({ entity, initialStatus = '', initialGovernorate = '', onChanged, onDetails }) {
     const pharmacy = entity === 'pharmacies';
     const singular = pharmacy ? 'pharmacy' : 'customer';
     const path = '/admin/' + entity;
-    const [filters, setFilters] = useState({ search: '', status: '', governorate: '', city: '' });
+    const statuses = pharmacy ? ['pending', 'active', 'suspended'] : ['active', 'inactive'];
+    const [filters, setFilters] = useState({
+        search: '',
+        status: statuses.includes(initialStatus) ? initialStatus : '',
+        governorate: pharmacy && Object.hasOwn(places, initialGovernorate) ? initialGovernorate : '',
+        city: '',
+    });
     const [page, setPage] = useState(1);
     const [revision, setRevision] = useState(0);
     const [results, setResults] = useState(null);
@@ -134,7 +140,7 @@ export function Directory({ entity, onChanged, onDetails }) {
             <div className="table-filters">
                 <Field label="Search"><input type="search" value={filters.search} onChange={(event) => filter('search', event.target.value)} placeholder={pharmacy ? 'Name, license, or city' : 'Name or email'} /></Field>
                 <Field label="Status"><select value={filters.status} onChange={(event) => filter('status', event.target.value)}>
-                    <option value="">All statuses</option>{(pharmacy ? ['pending', 'active', 'suspended'] : ['active', 'inactive']).map((status) =>
+                    <option value="">All statuses</option>{statuses.map((status) =>
                         <option key={status} value={status}>{status[0].toUpperCase() + status.slice(1)}</option>)}</select></Field>
                 {pharmacy && <>
                     <Field label="Governorate"><select value={filters.governorate} onChange={(event) => filter('governorate', event.target.value)}>

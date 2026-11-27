@@ -12,7 +12,7 @@ import { ProfileSettings } from './ProfileSettings';
 import { Sidebar, sections } from './Sidebar';
 import './admin.css';
 
-const currentSection = () => Object.hasOwn(sections, location.hash.slice(1)) ? location.hash.slice(1) : 'overview';
+const currentHash = () => location.hash.slice(1);
 
 function Login({ onLogin, message }) {
     const [error, setError] = useState('');
@@ -54,7 +54,7 @@ function Login({ onLogin, message }) {
 
 function Overview({ onDetails }) {
     const [summary, setSummary] = useState(null);
-    const [sites, setSites] = useState([]);
+    const [sites, setSites] = useState(null);
     const [error, setError] = useState('');
 
     useEffect(() => {
@@ -81,9 +81,9 @@ function Overview({ onDetails }) {
             <a className="button secondary" href="#pharmacies">Manage pharmacies <Icon name="arrow" /></a></div>
         <Notice error>{error}</Notice>
         <div className="overview-grid"><div className="overview-main">
-            <div className="stats-grid">{stats.map(([title, value, icon]) => <div className="stat" key={title}>
+            <div className="stats-grid">{stats.map(([title, value, icon]) => <a className="stat stat-link" key={title} href={icon === 'reservations' ? '#reservations?status=completed' : '#' + icon}>
                 <span className="stat-icon"><Icon name={icon} /></span><div><p>{title}</p><strong>{value ?? '—'}</strong></div>
-            </div>)}</div>
+            </a>)}</div>
             <RegistrationTrend registrations={summary?.registrations} />
         </div>
             <JordanMap sites={sites} />
@@ -104,9 +104,9 @@ function Overview({ onDetails }) {
                     </div>
                     <div className="status-chart">{statuses.map((status) => {
                     const value = summary?.counts[status] ?? 0;
-                    return <div className="chart-row" key={status}><span>{status}</span><div className="bar-track">
+                    return <a className="chart-row" key={status} href={'#pharmacies?status=' + status}><span>{status}</span><div className="bar-track">
                         <div className={'bar bar-' + status} style={{ width: (total ? (value / total) * 100 : 0) + '%' }} />
-                    </div><strong>{summary ? value : '—'}</strong></div>;
+                    </div><strong>{summary ? value : '—'}</strong></a>;
                 })}</div></div>
             </section>
             <section className="panel activity-panel"><header className="panel-header"><div><h2>Recent updates</h2><p>Latest pharmacy changes</p></div></header>
@@ -121,12 +121,16 @@ function Overview({ onDetails }) {
 
 function App() {
     const [user, setUser] = useState(undefined);
-    const [tab, setTab] = useState(currentSection);
+    const [hash, setHash] = useState(currentHash);
+    const [section, query] = hash.split('?');
+    const tab = Object.hasOwn(sections, section) ? section : 'overview';
+    const params = new URLSearchParams(query);
+    const status = params.get('status') ?? '';
     const [message, setMessage] = useState(null);
     const [detail, setDetail] = useState(null);
 
     useEffect(() => {
-        const navigate = () => setTab(currentSection());
+        const navigate = () => setHash(currentHash());
         window.addEventListener('hashchange', navigate);
         api('/auth/me').then(({ data }) => setUser(data.platform_role === 'admin' ? data : null)).catch(() => setUser(null));
         return () => window.removeEventListener('hashchange', navigate);
@@ -163,11 +167,16 @@ function App() {
     } else if (tab === 'inventory') {
         content = <Inventory />;
     } else if (tab === 'reservations') {
-        content = <Reservations />;
+        const governorate = params.get('governorate') ?? '';
+        content = <Reservations key={status + ':' + governorate} initialStatus={status} initialGovernorate={governorate} />;
     } else if (tab === 'profile') {
         content = <ProfileSettings user={user} onUpdated={setUser} />;
     } else {
-        content = <Directory key={tab} entity={tab} onChanged={() => setMessage(null)} onDetails={openDetails} />;
+        const initialStatus = tab === 'pharmacies' ? status : '';
+        const initialGovernorate = tab === 'pharmacies' ? params.get('governorate') ?? '' : '';
+        content = <Directory key={tab + ':' + initialStatus + ':' + initialGovernorate} entity={tab}
+            initialStatus={initialStatus} initialGovernorate={initialGovernorate}
+            onChanged={() => setMessage(null)} onDetails={openDetails} />;
     }
 
     return <div className="workspace">
