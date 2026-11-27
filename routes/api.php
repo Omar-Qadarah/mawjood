@@ -14,6 +14,7 @@ use App\Http\Controllers\Api\V1\Auth\MeController;
 use App\Http\Controllers\Api\V1\Auth\RegisterController;
 use App\Http\Controllers\Api\V1\Medicine\MedicineSearchController;
 use App\Http\Controllers\Api\V1\Pharmacy\PharmacyController;
+use App\Http\Controllers\Api\V1\Reservation\ReservationController;
 use Illuminate\Support\Facades\Route;
 
 Route::pattern('medicine', '[0-9]+');
@@ -63,6 +64,8 @@ Route::prefix('v1')
 
             Route::post('auth/logout', LogoutController::class)
                 ->name('auth.logout');
+
+            Route::post('reservations', [ReservationController::class, 'store'])->name('reservations.store');
 
             // Pharmacy
             Route::post('pharmacies', [PharmacyController::class, 'store'])
