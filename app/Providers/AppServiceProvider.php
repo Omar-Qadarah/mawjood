@@ -8,7 +8,6 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Str;
 
-
 class AppServiceProvider extends ServiceProvider
 {
     /**
@@ -24,10 +23,13 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        // User registration: 6 requests per minute per IP.
         RateLimiter::for('register', function (Request $request) {
-            return Limit::perMinute(6)->by($request->ip());
+            return Limit::perMinute(6)
+                ->by($request->ip());
         });
 
+        // Login: 5 requests per minute per email and IP.
         RateLimiter::for('login', function (Request $request) {
             $email = Str::lower((string) $request->input('email'));
 
@@ -35,9 +37,10 @@ class AppServiceProvider extends ServiceProvider
                 ->by($email . '|' . $request->ip());
         });
 
+        // Pharmacy registration: 3 requests per minute per IP.
         RateLimiter::for('pharmacy-register', function (Request $request) {
             return Limit::perMinute(3)
-                ->by($request->user()?->id . '|' . $request->ip());
+                ->by($request->ip());
         });
     }
 }
