@@ -1227,9 +1227,29 @@ td strong,
 .profile-preview-image {
     display: block;
     max-width: calc(100vw - 54px);
-    max-height: min(calc(90dvh - 80px), 770px);
+    max-height: min(calc(90dvh - 130px), 720px);
     margin-inline: auto;
     border-radius: 8px;
+}
+.profile-crop canvas {
+    display: block;
+    width: min(100%, 230px);
+    height: auto;
+    margin-inline: auto;
+    border-radius: 50%;
+    background: var(--accent-soft);
+}
+.profile-crop-controls {
+    display: grid;
+    gap: 6px;
+    margin: 10px 0 0;
+    padding: 0;
+    border: 0;
+    min-width: 0;
+}
+.profile-crop-controls input[type="range"] {
+    padding: 0;
+    accent-color: var(--accent);
 }
 .profile-avatar {
     width: 52px;

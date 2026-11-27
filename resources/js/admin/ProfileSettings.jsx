@@ -1,12 +1,15 @@
 import { useEffect, useRef, useState } from 'react';
 import { api } from './api';
 import { Field, Modal, Notice } from './ui';
+import { ProfilePhotoCrop } from './ProfilePhotoCrop';
 
 export function ProfileSettings({ user, onUpdated }) {
     const [feedback, setFeedback] = useState({});
     const [saving, setSaving] = useState('');
     const [previewUrl, setPreviewUrl] = useState(null);
     const [enlarged, setEnlarged] = useState(false);
+    const [cropping, setCropping] = useState(false);
+    const [crop, setCrop] = useState(null);
     const photoUrl = useRef(null);
     const photoInput = useRef(null);
     const previewButton = useRef(null);
@@ -15,7 +18,12 @@ export function ProfileSettings({ user, onUpdated }) {
         if (photoUrl.current) URL.revokeObjectURL(photoUrl.current);
     }, []);
 
+    useEffect(() => {
+        if (crop) return () => URL.revokeObjectURL(crop.url);
+    }, [crop]);
+
     function previewPhoto(file) {
+        setCrop(null);
         if (photoUrl.current) URL.revokeObjectURL(photoUrl.current);
         photoUrl.current = file ? URL.createObjectURL(file) : null;
         setPreviewUrl(photoUrl.current);
@@ -29,8 +37,16 @@ export function ProfileSettings({ user, onUpdated }) {
 
     function closeEnlargedPreview() {
         setEnlarged(false);
+        setCropping(false);
         requestAnimationFrame(() => previewButton.current?.focus());
     }
+
+    function applyCrop(file, settings) {
+        setCrop({ file, settings, url: URL.createObjectURL(file) });
+        closeEnlargedPreview();
+    }
+
+    const displayedPreview = crop?.url ?? previewUrl;
 
     async function save(event, section) {
         event.preventDefault();
@@ -40,7 +56,8 @@ export function ProfileSettings({ user, onUpdated }) {
         setFeedback({});
         try {
             if (section === 'profile') {
-                if (!data.get('avatar')?.size) data.delete('avatar');
+                if (crop) data.set('avatar', crop.file);
+                else if (!data.get('avatar')?.size) data.delete('avatar');
                 const { data: updated } = await api('/admin/profile', { method: 'POST', body: data });
                 onUpdated(updated);
                 previewPhoto(null);
@@ -66,14 +83,14 @@ export function ProfileSettings({ user, onUpdated }) {
                 <div className="profile-photo">
                     {previewUrl ? <button ref={previewButton} className="avatar profile-avatar profile-preview-button" type="button"
                         aria-label="Enlarge photo preview" aria-haspopup="dialog" onClick={() => setEnlarged(true)}>
-                        <img src={previewUrl} alt="" />
+                        <img src={displayedPreview} alt="" />
                     </button> : <span className="avatar profile-avatar">
                         {user.avatar_url ? <img src={user.avatar_url} alt="Profile photo" /> : user.name?.slice(0, 1).toUpperCase()}
                     </span>}
                     <div className="profile-photo-control">
                         <Field label="Profile photo"><input ref={photoInput} type="file" name="avatar" accept="image/jpeg,image/png,image/webp" aria-describedby="profile-photo-help"
                             disabled={saving === 'profile'} onChange={event => previewPhoto(event.target.files[0])} /></Field>
-                        <p id="profile-photo-help" aria-live="polite">{previewUrl ? "Select the photo to enlarge it. Save profile to apply." : "JPEG, PNG, or WebP up to 2 MB."}</p>
+                        <p id="profile-photo-help" aria-live="polite">{previewUrl ? "Select the preview to enlarge or crop it. Save profile to apply." : "JPEG, PNG, or WebP up to 2 MB."}</p>
                         {previewUrl && <button className="button small secondary" type="button" aria-label="Cancel photo preview"
                             disabled={saving === 'profile'} onClick={cancelPhotoPreview}>Cancel</button>}
                     </div>
@@ -89,8 +106,14 @@ export function ProfileSettings({ user, onUpdated }) {
                 <button className="button primary" disabled={Boolean(saving)}>{saving === 'password' ? 'Changing…' : 'Change password'}</button>
             </form>
         </div>
-        {enlarged && previewUrl && <Modal title="Photo preview" onClose={closeEnlargedPreview}>
-            <img className="profile-preview-image" src={previewUrl} alt="New profile photo" />
+        {enlarged && previewUrl && <Modal title={cropping ? "Crop photo" : "Photo preview"} onClose={closeEnlargedPreview}>
+            {cropping ? <ProfilePhotoCrop source={previewUrl} initialCrop={crop?.settings} onApply={applyCrop}
+                onBack={() => setCropping(false)} /> : <>
+                <img className="profile-preview-image" src={displayedPreview} alt="New profile photo" />
+                <footer className="form-actions">
+                    <button className="button secondary" type="button" onClick={() => setCropping(true)}>Crop photo</button>
+                </footer>
+            </>}
         </Modal>}
     </section>;
 }
