@@ -2,9 +2,11 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Facades\DB;
 
 class InventoryItem extends Model
 {
@@ -17,6 +19,14 @@ class InventoryItem extends Model
             'is_listed' => 'boolean',
             'stock_verified_at' => 'datetime',
         ];
+    }
+
+    public function scopeWithAvailableQuantity(Builder $query, string $date): Builder
+    {
+        return $query->withSum(
+            ['batches as available_quantity' => fn (Builder $batch) => $batch->eligibleOn($date)],
+            DB::raw('quantity_on_hand - quantity_held'),
+        );
     }
 
     public function pharmacy(): BelongsTo

@@ -8,7 +8,6 @@ use App\Models\InventoryItem;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
-use Illuminate\Support\Facades\DB;
 
 class InventoryController extends Controller
 {
@@ -23,10 +22,7 @@ class InventoryController extends Controller
         $items = InventoryItem::query()
             ->with(['pharmacy', 'medicine'])
             ->withCount('batches')
-            ->withSum(
-                ['batches as available_quantity' => fn (Builder $query) => $query->eligibleOn($date)],
-                DB::raw('quantity_on_hand - quantity_held'),
-            );
+            ->withAvailableQuantity($date);
 
         if (isset($filters['pharmacy_id'])) {
             $items->where('pharmacy_id', $filters['pharmacy_id']);

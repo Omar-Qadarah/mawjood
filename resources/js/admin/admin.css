@@ -165,3 +165,9 @@ td strong, .table-secondary { display: block; }
     .form-grid { grid-template-columns: 1fr; }
     .weekly-day { grid-template-columns: 1fr; }
 }
+
+.catalog-fieldset, .catalog-component { min-width: 0; margin: 0 0 12px; border: 1px solid var(--line); border-radius: 9px; padding: 11px; }
+.catalog-fieldset legend, .catalog-component legend { font-weight: 700; padding: 0 5px; }
+.catalog-fieldset p { margin-bottom: 9px; font-size: .84rem; }
+.catalog-component .button { margin-top: 8px; }
+.page-heading .row-actions { flex-wrap: wrap; }

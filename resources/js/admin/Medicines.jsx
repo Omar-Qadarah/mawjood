@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react';
 import { api } from './api';
+import { IngredientManager } from './IngredientManager';
+import { MedicineEditor } from './MedicineEditor';
 import { Details, Field, Modal, Notice, Status } from './ui';
 
 const endpoint = '/admin/medicines';
@@ -70,6 +72,13 @@ export function Medicines() {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
     const [selection, setSelection] = useState(null);
+    const [editor, setEditor] = useState(null);
+    const [deleting, setDeleting] = useState(null);
+    const [manageIngredients, setManageIngredients] = useState(false);
+    const [revision, setRevision] = useState(0);
+    const [notice, setNotice] = useState('');
+    const [deleteError, setDeleteError] = useState('');
+    const [deletingBusy, setDeletingBusy] = useState(false);
 
     useEffect(() => {
         let current = true;
@@ -78,7 +87,10 @@ export function Medicines() {
                 const params = new URLSearchParams({ page });
                 if (search.trim()) params.set('search', search.trim());
                 const catalog = await api(endpoint + '?' + params);
-                if (current) setResult(catalog);
+                if (current) {
+                    if (page > catalog.meta.last_page) setPage(catalog.meta.last_page);
+                    else setResult(catalog);
+                }
             } catch (exception) {
                 if (current) setError(exception.message);
             } finally {
@@ -87,7 +99,7 @@ export function Medicines() {
         }, 150);
 
         return () => { current = false; clearTimeout(timer); };
-    }, [search, page]);
+    }, [search, page, revision]);
 
     function startLoading() {
         setLoading(true);
@@ -106,11 +118,36 @@ export function Medicines() {
         setPage(next);
     }
 
+    function refresh(message) {
+        if (message) setNotice(message);
+        startLoading();
+        setRevision((value) => value + 1);
+    }
+
+    async function removeMedicine() {
+        setDeletingBusy(true);
+        setDeleteError('');
+        try {
+            await api(endpoint + '/' + deleting.id, { method: 'DELETE' });
+            setDeleting(null);
+            refresh('Medicine deleted.');
+        } catch (exception) {
+            setDeleteError(exception.message);
+        } finally {
+            setDeletingBusy(false);
+        }
+    }
+
     const rows = result?.data ?? [];
 
     return <section aria-labelledby="medicines-heading">
-        <div className="page-heading"><div><h1 id="medicines-heading">Medicines</h1><p>Browse medicine packages and review their active ingredient strengths.</p></div></div>
-        <Notice error>{error}</Notice>
+        <div className="page-heading"><div><h1 id="medicines-heading">Medicines</h1><p>Manage medicine packages and active ingredient strengths.</p></div>
+            <div className="row-actions">
+                <button className="button secondary" type="button" onClick={() => setManageIngredients(true)}>Manage ingredients</button>
+                <button className="button primary" type="button" onClick={() => setEditor({})}>Add medicine</button>
+            </div>
+        </div>
+        <Notice error>{error}</Notice><Notice>{notice}</Notice>
         <div className="panel directory" aria-busy={loading}>
             <div className="table-filters">
                 <Field label="Search medicines">
@@ -121,14 +158,17 @@ export function Medicines() {
             </div>
             <div className="table-scroll">
                 <table>
-                    <thead><tr>{['Medicine', 'Strength', 'Package', 'Status', 'Details'].map((heading) =>
+                    <thead><tr>{['Medicine', 'Strength', 'Package', 'Status', 'Actions'].map((heading) =>
                         <th key={heading} scope="col">{heading}</th>)}</tr></thead>
                     <tbody>{!loading && !error && rows.length ? rows.map((medicine) => <tr key={medicine.id}>
                         <td><strong>{medicine.name_en}</strong>{medicine.name_ar && <small className="table-secondary" lang="ar">{medicine.name_ar}</small>}
                             <small className="table-secondary">{medicine.manufacturer_name}</small></td>
                         <td>{medicine.strength_text}</td><td>{packageSize(medicine)}</td><td><Status status={medicine.catalog_status} /></td>
-                        <td><button className="button small secondary" type="button" onClick={() => setSelection(medicine)}
-                            aria-label={'View ' + medicine.name_en}>View</button></td>
+                        <td><div className="row-actions">
+                            <button className="button small secondary" type="button" onClick={() => setSelection(medicine)} aria-label={'View ' + medicine.name_en}>View</button>
+                            <button className="button small secondary" type="button" onClick={() => setEditor(medicine)} aria-label={'Edit ' + medicine.name_en}>Edit</button>
+                            <button className="button small danger" type="button" onClick={() => { setDeleteError(''); setDeleting(medicine); }} aria-label={'Delete ' + medicine.name_en}>Delete</button>
+                        </div></td>
                     </tr>) : <tr><td className="empty" colSpan="5">{loading ? 'Loading medicines…'
                         : error ? 'Medicine results are unavailable.' : 'No medicines found.'}</td></tr>}</tbody>
                 </table>
@@ -140,5 +180,19 @@ export function Medicines() {
             </footer>}
         </div>
         {selection && <MedicineDetails summary={selection} onClose={() => setSelection(null)} />}
+        {editor && <MedicineEditor id={editor.id} onClose={() => setEditor(null)} onSaved={(message) => {
+            if (!editor.id) { setSearch(''); setPage(1); }
+            setEditor(null);
+            refresh(message);
+        }} />}
+        {manageIngredients && <IngredientManager onClose={() => { setManageIngredients(false); refresh(); }} />}
+        {deleting && <Modal title="Delete medicine?" onClose={() => { if (!deletingBusy) setDeleting(null); }}>
+            <Notice error>{deleteError}</Notice>
+            <p>Delete {deleting.name_en} and its ingredient strengths? Shared ingredient records will be kept.</p>
+            <footer className="form-actions">
+                <button className="button secondary" type="button" disabled={deletingBusy} onClick={() => setDeleting(null)}>Cancel</button>
+                <button className="button danger" type="button" disabled={deletingBusy} onClick={removeMedicine}>Confirm delete medicine</button>
+            </footer>
+        </Modal>}
     </section>;
 }
