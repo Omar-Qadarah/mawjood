@@ -57,4 +57,9 @@ class Pharmacy extends Model
             ->withPivot(['id', 'role', 'is_active'])
             ->withTimestamps();
     }
+
+    public function inventoryItems(): HasMany
+    {
+        return $this->hasMany(InventoryItem::class);
+    }
 }
