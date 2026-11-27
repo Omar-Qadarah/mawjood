@@ -36,6 +36,20 @@
         </section>
 
         <section id="pharmacy-panel" hidden>
+            <section class="panel dashboard-summary" aria-labelledby="dashboard-heading">
+                <h2 id="dashboard-heading">Pharmacy overview</h2>
+                <p id="summary-message" role="status">Loading overview…</p>
+                <div id="summary-data" hidden>
+                    <dl class="summary-counts">
+                        <div><dt>Total</dt><dd data-summary-count="total"></dd></div>
+                        <div><dt>Pending</dt><dd data-summary-count="pending"></dd></div>
+                        <div><dt>Active</dt><dd data-summary-count="active"></dd></div>
+                        <div><dt>Suspended</dt><dd data-summary-count="suspended"></dd></div>
+                    </dl>
+                    <h3>Recently added pharmacies</h3>
+                    <ul id="recent-pharmacies" class="recent-pharmacies"></ul>
+                </div>
+            </section>
             <div class="toolbar">
                 <label class="search-field">Search
                     <input id="search-input" type="search" placeholder="Name, license, or city">

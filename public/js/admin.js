@@ -17,6 +17,7 @@ if (root) {
     let currentPage = 1;
     let lastPage = 1;
     let searchTimer;
+    let summaryRequest = 0;
 
     function showNotice(message, isError = false) {
         notice.textContent = message;
@@ -60,6 +61,11 @@ if (root) {
     function showLogin(message = '') {
         loginPanel.hidden = false;
         pharmacyPanel.hidden = true;
+        summaryRequest++;
+        document.querySelector('#summary-data').hidden = true;
+        const summaryMessage = document.querySelector('#summary-message');
+        summaryMessage.textContent = 'Loading overview…';
+        summaryMessage.hidden = false;
         logoutButton.hidden = true;
         if (message) showNotice(message, true);
     }
@@ -69,7 +75,47 @@ if (root) {
         pharmacyPanel.hidden = false;
         logoutButton.hidden = false;
         showNotice('');
-        await loadPharmacies();
+        await Promise.all([loadPharmacies(), loadSummary()]);
+    }
+
+    async function loadSummary() {
+        const request = ++summaryRequest;
+        const message = document.querySelector('#summary-message');
+        const summaryData = document.querySelector('#summary-data');
+        try {
+            const summary = await api('/admin/dashboard/summary');
+            if (request !== summaryRequest) return;
+
+            for (const element of summaryData.querySelectorAll('[data-summary-count]')) {
+                element.textContent = summary.counts[element.dataset.summaryCount];
+            }
+
+            const entries = summary.recent_pharmacies.map((pharmacy) => {
+                const item = document.createElement('li');
+                const name = document.createElement('strong');
+                name.textContent = pharmacy.name_en;
+                const detail = document.createElement('span');
+                detail.textContent = new Date(pharmacy.created_at).toLocaleDateString() + ' · ' + pharmacy.status;
+                item.append(name, detail);
+                return item;
+            });
+
+            if (!entries.length) {
+                const empty = document.createElement('li');
+                empty.textContent = 'No pharmacies have been added yet.';
+                entries.push(empty);
+            }
+
+            document.querySelector('#recent-pharmacies').replaceChildren(...entries);
+            summaryData.hidden = false;
+            message.hidden = true;
+        } catch {
+            if (request !== summaryRequest) return;
+
+            summaryData.hidden = true;
+            message.textContent = 'The pharmacy overview could not be loaded.';
+            message.hidden = false;
+        }
     }
 
     async function loadPharmacies() {
@@ -170,7 +216,7 @@ if (root) {
         try {
             await api(`/admin/pharmacies/${pharmacy.id}`, { method: 'DELETE' });
             showNotice('Pharmacy deleted.');
-            await loadPharmacies();
+            await Promise.all([loadPharmacies(), loadSummary()]);
         } catch (error) {
             showNotice(error.message, true);
         }
@@ -261,7 +307,7 @@ if (root) {
             pharmacyDialog.close();
             showNotice(id ? 'Pharmacy updated.' : 'Pharmacy created.');
             currentPage = 1;
-            await loadPharmacies();
+            await Promise.all([loadPharmacies(), loadSummary()]);
         } catch (error) {
             showNotice(error.message, true);
         }

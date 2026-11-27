@@ -1,13 +1,13 @@
 <?php
 
-use Illuminate\Support\Facades\Route;
-
-use App\Http\Controllers\Api\V1\Auth\RegisterController;
+use App\Http\Controllers\Api\V1\Admin\AdminPharmacyController;
+use App\Http\Controllers\Api\V1\Admin\DashboardSummaryController;
 use App\Http\Controllers\Api\V1\Auth\LoginController;
 use App\Http\Controllers\Api\V1\Auth\LogoutController;
 use App\Http\Controllers\Api\V1\Auth\MeController;
+use App\Http\Controllers\Api\V1\Auth\RegisterController;
 use App\Http\Controllers\Api\V1\Pharmacy\PharmacyController;
-use App\Http\Controllers\Api\V1\Admin\AdminPharmacyController;
+use Illuminate\Support\Facades\Route;
 
 Route::prefix('v1')
     ->name('api.v1.')
@@ -27,8 +27,10 @@ Route::prefix('v1')
             ->prefix('admin')
             ->name('admin.')
             ->group(function () {
-                Route::apiResource('pharmacies', AdminPharmacyController::class);
-            });
+            Route::apiResource('pharmacies', AdminPharmacyController::class);
+            Route::get('dashboard/summary', DashboardSummaryController::class)
+                ->name('dashboard.summary');
+        });
         // Authenticated routes
         Route::middleware('auth:sanctum')->group(function () {
 
