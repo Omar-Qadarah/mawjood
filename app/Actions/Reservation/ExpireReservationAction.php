@@ -32,6 +32,7 @@ class ExpireReservationAction
                 'status' => ReservationStatus::Expired,
                 'status_changed_at' => $now,
                 'attention_reason' => null,
+                'pickup_code_hash' => null,
             ])->save();
 
             DB::table('audit_logs')->insert([

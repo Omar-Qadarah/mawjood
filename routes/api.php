@@ -54,6 +54,8 @@ Route::prefix('v1')
                     ->whereNumber('inventoryItem')->name('inventory-items.receipts.store');
                 Route::post('inventory-items/{inventoryItem}/batches/{batch}/adjustments', [StockMovementController::class, 'adjust'])
                     ->whereNumber(['inventoryItem', 'batch'])->name('inventory-items.adjustments.store');
+                Route::post('reservations/{reservation}/complete', [AdminReservationController::class, 'complete'])
+                    ->whereNumber('reservation')->middleware('throttle:10,1')->name('reservations.complete');
                 Route::apiResource('reservations', AdminReservationController::class)->only(['index', 'show', 'update']);
                 Route::get('dashboard/summary', DashboardSummaryController::class)
                     ->name('dashboard.summary');
@@ -67,6 +69,8 @@ Route::prefix('v1')
             Route::post('auth/logout', LogoutController::class)
                 ->name('auth.logout');
 
+            Route::post('reservations/{reservation}/pickup-code', [ReservationController::class, 'pickupCode'])
+                ->whereNumber('reservation')->middleware('throttle:10,1')->name('reservations.pickup-code');
             Route::post('reservations', [ReservationController::class, 'store'])->name('reservations.store');
 
             // Pharmacy

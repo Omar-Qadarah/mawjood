@@ -9,7 +9,7 @@ class InventoryMovement extends Model
 {
     public const UPDATED_AT = null;
 
-    protected $fillable = ['type', 'quantity', 'reason', 'reference', 'created_by'];
+    protected $fillable = ['type', 'quantity', 'reason', 'reference', 'reservation_id', 'created_by'];
 
     protected function casts(): array
     {

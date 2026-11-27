@@ -2,10 +2,12 @@
 
 namespace App\Http\Controllers\Api\V1\Admin;
 
+use App\Actions\Reservation\CompleteReservationAction;
 use App\Actions\Reservation\ReviewReservationAction;
 use App\Enums\BatchAllocationStatus;
 use App\Enums\ReservationStatus;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Api\V1\Admin\CompleteReservationRequest;
 use App\Http\Requests\Api\V1\Admin\ReviewReservationRequest;
 use App\Http\Resources\Api\V1\Admin\ReservationResource;
 use App\Models\Reservation;
@@ -49,6 +51,14 @@ class AdminReservationController extends Controller
         abort_if($reservation->status === ReservationStatus::Pending, 409, 'There is not enough eligible stock to confirm this reservation.');
 
         return $this->show($reservation);
+    }
+
+    public function complete(
+        CompleteReservationRequest $request,
+        Reservation $reservation,
+        CompleteReservationAction $action,
+    ): ReservationResource {
+        return $this->show($action->execute($reservation, $request->user(), $request->validated('pickup_code')));
     }
 
     public function show(Reservation $reservation): ReservationResource

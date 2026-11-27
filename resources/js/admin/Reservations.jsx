@@ -29,16 +29,23 @@ function ReservationDetails({ id, code, onClose, onReviewed }) {
         return () => { current = false; };
     }, [id]);
 
-    async function review(status, reason) {
+    async function review(status, value) {
         setBusy(true);
         setError('');
         try {
             const body = { status };
-            if (reason) body.rejection_reason = reason;
-            const { data } = await api(endpoint + '/' + id, { method: 'PATCH', body });
+            const path = endpoint + '/' + id;
+            if (status === 'rejected' && value) body.rejection_reason = value;
+            const { data } = status === 'completed'
+                ? await api(path + '/complete', { method: 'POST', body: { pickup_code: value } })
+                : await api(path, { method: 'PATCH', body });
             setReservation(data);
             setRejecting(false);
-            setNotice(status === 'confirmed' ? 'Reservation confirmed. Pickup deadline set.' : 'Reservation rejected. Held stock released.');
+            setNotice({
+                confirmed: 'Reservation confirmed. Pickup deadline set.',
+                rejected: 'Reservation rejected. Held stock released.',
+                completed: 'Reservation completed. Dispense recorded.',
+            }[status]);
             onReviewed();
         } catch (exception) {
             setError(exception.message);
@@ -67,7 +74,7 @@ function ReservationDetails({ id, code, onClose, onReviewed }) {
                 ...(reservation.rejection_reason ? { 'Rejection reason': reservation.rejection_reason } : {}),
             }} />
             <Notice error>{reservation.attention_reason === 'insufficient_eligible_stock' &&
-                'This reservation needs attention. There are not enough eligible packages to confirm it.'}</Notice>
+                'This reservation needs attention. There are not enough eligible packages to fulfill it.'}</Notice>
             <h3>Medicine and batch allocations</h3>
             <div className="table-scroll"><table>
                 <thead><tr>{['Medicine', 'Requested', 'Batch', 'Allocated', 'Allocation status'].map((heading) =>
@@ -96,6 +103,22 @@ function ReservationDetails({ id, code, onClose, onReviewed }) {
                     <button className="button danger" disabled={busy}>{busy ? 'Rejecting…' : 'Release stock and reject'}</button>
                 </footer>
             </form>}
+        {reservation?.status === 'confirmed' && <form className="catalog-fieldset" onSubmit={(event) => {
+            event.preventDefault();
+            const form = event.currentTarget;
+            const pickupCode = new FormData(form).get('pickup_code');
+            form.reset();
+            review('completed', pickupCode);
+        }}>
+            <h3>Collect reservation</h3>
+            <Field label="Pickup code">
+                <input name="pickup_code" inputMode="numeric" pattern="[0-9]{6}" maxLength={6}
+                    autoComplete="off" required disabled={busy} />
+            </Field>
+            <div className="form-actions">
+                <button className="button primary" disabled={busy}>{busy ? 'Recording…' : 'Complete and dispense'}</button>
+            </div>
+        </form>}
         {(!rejecting || reservation?.status !== 'pending') && <footer className="form-actions">
             <button className="button secondary" type="button" disabled={busy} onClick={onClose}>Done</button>
             {reservation?.status === 'pending' && <>

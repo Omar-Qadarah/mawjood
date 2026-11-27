@@ -38,6 +38,11 @@ class Reservation extends Model
                 ->where('pickup_deadline', '<=', $cutoff)));
     }
 
+    public function hashPickupCode(string $code): string
+    {
+        return hash_hmac('sha256', $this->id.':'.$code, config('app.key'));
+    }
+
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
