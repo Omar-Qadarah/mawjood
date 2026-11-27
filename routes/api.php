@@ -15,6 +15,7 @@ use App\Http\Controllers\Api\V1\Auth\MeController;
 use App\Http\Controllers\Api\V1\Auth\RegisterController;
 use App\Http\Controllers\Api\V1\Medicine\MedicineSearchController;
 use App\Http\Controllers\Api\V1\Pharmacy\PharmacyController;
+use App\Http\Controllers\Api\V1\Prescription\PrescriptionController;
 use App\Http\Controllers\Api\V1\Reservation\ReservationController;
 use Illuminate\Support\Facades\Route;
 
@@ -74,6 +75,11 @@ Route::prefix('v1')
             Route::post('reservations/{reservation}/pickup-code', [ReservationController::class, 'pickupCode'])
                 ->whereNumber('reservation')->middleware('throttle:10,1')->name('reservations.pickup-code');
             Route::post('reservations', [ReservationController::class, 'store'])->name('reservations.store');
+
+            Route::post('prescriptions', [PrescriptionController::class, 'store'])
+                ->middleware('throttle:10,1')->name('prescriptions.store');
+            Route::get('reservations/{reservation}/prescription/image', [PrescriptionController::class, 'image'])
+                ->whereNumber('reservation')->name('reservations.prescription.image');
 
             // Pharmacy
             Route::post('pharmacies', [PharmacyController::class, 'store'])

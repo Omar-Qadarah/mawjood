@@ -38,6 +38,13 @@ return [
             'report' => false,
         ],
 
+        'prescriptions' => [
+            'driver' => 'local',
+            'root' => storage_path('app/private/prescriptions'),
+            'visibility' => 'private',
+            'throw' => true,
+        ],
+
         'public' => [
             'driver' => 'local',
             'root' => storage_path('app/public'),
