@@ -1492,7 +1492,8 @@ td strong,
     font-size: 0.64rem;
 }
 .sidebar .quick-jump-trigger:hover,
-.quick-jump-results a:hover {
+.quick-jump-results a:hover,
+.quick-jump-results [aria-selected="true"] {
     background: var(--accent-soft);
     color: var(--accent);
 }
@@ -1502,6 +1503,9 @@ td strong,
     padding: 0;
     margin: 8px 0 0;
     list-style: none;
+}
+.quick-jump-results[hidden] {
+    display: none;
 }
 .quick-jump-results a {
     display: flex;
