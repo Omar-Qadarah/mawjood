@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Actions\Reservation\CreateReservationAction;
+use App\Actions\Reservation\IssuePickupCodeAction;
 use App\Actions\Reservation\ReviewReservationAction;
 use App\Enums\PlatformRole;
 use App\Enums\ReservationStatus;
@@ -91,6 +92,46 @@ class CompleteReservationTest extends TestCase
         $this->assertSame(72, (int) $this->item->batches()->sum('quantity_on_hand'));
         $this->assertSame(50, (int) $this->item->batches()->sum('quantity_held'));
         $this->assertDatabaseMissing('inventory_movements', ['type' => 'dispense']);
+    }
+
+    public function test_admin_cancels_pending_and_confirmed_reservations_and_releases_only_their_holds(): void
+    {
+        $pending = app(CreateReservationAction::class)->execute($this->customer, [
+            'pharmacy_id' => $this->item->pharmacy_id,
+            'idempotency_key' => 'cancel-pending',
+            'items' => [['inventory_item_id' => $this->item->id, 'quantity' => 5]],
+        ]);
+        $code = app(IssuePickupCodeAction::class)->execute($this->reservation, $this->customer);
+        $this->actingAs($this->admin, 'web');
+
+        foreach ([[$pending, 50], [$this->reservation, 0]] as [$reservation, $remaining]) {
+            $url = '/api/v1/admin/reservations/'.$reservation->id.'/cancel';
+            $this->postJson($url)->assertOk()
+                ->assertJsonPath('data.status', 'cancelled')
+                ->assertJsonPath('data.held_quantity', 0)
+                ->assertJsonPath('data.items.0.allocations.0.status', 'released');
+            $this->assertSame(['cancelled'], $reservation->allocations()->pluck('release_reason')->unique()->values()->all());
+            $this->assertSame($remaining, (int) $this->item->batches()->sum('quantity_held'));
+            $this->assertSame(72, (int) $this->item->batches()->sum('quantity_on_hand'));
+            $this->assertDatabaseHas('audit_logs', [
+                'action' => 'reservation.cancelled', 'actor_id' => $this->admin->id, 'subject_id' => $reservation->id,
+            ]);
+            $this->postJson($url)->assertConflict();
+        }
+
+        $this->assertNull($this->reservation->fresh()->pickup_code_hash);
+        $this->postJson($this->completeUrl(), ['pickup_code' => $code])->assertConflict();
+        $this->assertDatabaseCount('inventory_movements', 4);
+        $this->getJson('/api/v1/admin/reservations?status=cancelled')->assertOk()->assertJsonPath('meta.total', 2);
+    }
+
+    public function test_guests_and_customers_cannot_cancel_from_the_admin_api(): void
+    {
+        $url = '/api/v1/admin/reservations/'.$this->reservation->id.'/cancel';
+        $this->postJson($url)->assertUnauthorized();
+        $this->actingAs($this->customer, 'web')->postJson($url)->assertForbidden();
+        $this->assertSame(ReservationStatus::Confirmed, $this->reservation->fresh()->status);
+        $this->assertSame(50, (int) $this->item->batches()->sum('quantity_held'));
     }
 
     private function issueUrl(): string

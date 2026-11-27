@@ -56,6 +56,8 @@ Route::prefix('v1')
                     ->whereNumber(['inventoryItem', 'batch'])->name('inventory-items.adjustments.store');
                 Route::post('reservations/{reservation}/complete', [AdminReservationController::class, 'complete'])
                     ->whereNumber('reservation')->middleware('throttle:10,1')->name('reservations.complete');
+                Route::post('reservations/{reservation}/cancel', [AdminReservationController::class, 'cancel'])
+                    ->whereNumber('reservation')->name('reservations.cancel');
                 Route::apiResource('reservations', AdminReservationController::class)->only(['index', 'show', 'update']);
                 Route::get('dashboard/summary', DashboardSummaryController::class)
                     ->name('dashboard.summary');

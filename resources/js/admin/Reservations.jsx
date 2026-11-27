@@ -20,6 +20,7 @@ function ReservationDetails({ id, code, onClose, onReviewed }) {
     const [notice, setNotice] = useState('');
     const [busy, setBusy] = useState(false);
     const [rejecting, setRejecting] = useState(false);
+    const [cancelling, setCancelling] = useState(false);
 
     useEffect(() => {
         let current = true;
@@ -36,15 +37,23 @@ function ReservationDetails({ id, code, onClose, onReviewed }) {
             const body = { status };
             const path = endpoint + '/' + id;
             if (status === 'rejected' && value) body.rejection_reason = value;
-            const { data } = status === 'completed'
-                ? await api(path + '/complete', { method: 'POST', body: { pickup_code: value } })
-                : await api(path, { method: 'PATCH', body });
+            let request;
+            if (status === 'completed') {
+                request = api(path + '/complete', { method: 'POST', body: { pickup_code: value } });
+            } else if (status === 'cancelled') {
+                request = api(path + '/cancel', { method: 'POST' });
+            } else {
+                request = api(path, { method: 'PATCH', body });
+            }
+            const { data } = await request;
             setReservation(data);
             setRejecting(false);
+            setCancelling(false);
             setNotice({
                 confirmed: 'Reservation confirmed. Pickup deadline set.',
                 rejected: 'Reservation rejected. Held stock released.',
                 completed: 'Reservation completed. Dispense recorded.',
+                cancelled: 'Reservation cancelled. Held stock released.',
             }[status]);
             onReviewed();
         } catch (exception) {
@@ -58,6 +67,9 @@ function ReservationDetails({ id, code, onClose, onReviewed }) {
             setBusy(false);
         }
     }
+
+    const canCancel = ['pending', 'confirmed'].includes(reservation?.status);
+    const confirmingCancellation = canCancel && cancelling;
 
     return <Modal title={'Reservation ' + code} onClose={() => { if (!busy) onClose(); }} wide>
         <Notice error>{error}</Notice>
@@ -103,7 +115,7 @@ function ReservationDetails({ id, code, onClose, onReviewed }) {
                     <button className="button danger" disabled={busy}>{busy ? 'Rejecting…' : 'Release stock and reject'}</button>
                 </footer>
             </form>}
-        {reservation?.status === 'confirmed' && <form className="catalog-fieldset" onSubmit={(event) => {
+        {reservation?.status === 'confirmed' && !confirmingCancellation && <form className="catalog-fieldset" onSubmit={(event) => {
             event.preventDefault();
             const form = event.currentTarget;
             const pickupCode = new FormData(form).get('pickup_code');
@@ -119,8 +131,19 @@ function ReservationDetails({ id, code, onClose, onReviewed }) {
                 <button className="button primary" disabled={busy}>{busy ? 'Recording…' : 'Complete and dispense'}</button>
             </div>
         </form>}
-        {(!rejecting || reservation?.status !== 'pending') && <footer className="form-actions">
+        {confirmingCancellation && <div className="catalog-fieldset">
+            <h3>Cancel this reservation?</h3>
+            <p>Held packages will return to inventory and any pickup code will stop working.</p>
+            <div className="form-actions">
+                <button className="button secondary" type="button" disabled={busy} onClick={() => setCancelling(false)}>Back</button>
+                <button className="button danger" type="button" disabled={busy} onClick={() => review('cancelled')}>
+                    {busy ? 'Cancelling…' : 'Release stock and cancel'}
+                </button>
+            </div>
+        </div>}
+        {!confirmingCancellation && (!rejecting || reservation?.status !== 'pending') && <footer className="form-actions">
             <button className="button secondary" type="button" disabled={busy} onClick={onClose}>Done</button>
+            {canCancel && <button className="button danger" type="button" disabled={busy} onClick={() => setCancelling(true)}>Cancel reservation</button>}
             {reservation?.status === 'pending' && <>
                 <button className="button danger" type="button" disabled={busy} onClick={() => setRejecting(true)}>Reject</button>
                 <button className="button primary" type="button" disabled={busy} onClick={() => review('confirmed')}>

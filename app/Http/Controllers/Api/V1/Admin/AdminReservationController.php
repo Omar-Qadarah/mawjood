@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api\V1\Admin;
 
+use App\Actions\Reservation\CancelReservationAction;
 use App\Actions\Reservation\CompleteReservationAction;
 use App\Actions\Reservation\ReviewReservationAction;
 use App\Enums\BatchAllocationStatus;
@@ -59,6 +60,11 @@ class AdminReservationController extends Controller
         CompleteReservationAction $action,
     ): ReservationResource {
         return $this->show($action->execute($reservation, $request->user(), $request->validated('pickup_code')));
+    }
+
+    public function cancel(Request $request, Reservation $reservation, CancelReservationAction $action): ReservationResource
+    {
+        return $this->show($action->execute($reservation, $request->user()));
     }
 
     public function show(Reservation $reservation): ReservationResource
