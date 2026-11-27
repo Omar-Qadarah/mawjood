@@ -6,9 +6,10 @@ import { Directory, RecordDetails } from './Directory';
 import { JordanMap } from './JordanMap';
 import { Medicines } from './Medicines';
 import { Inventory } from './Inventory';
+import { Reservations } from './Reservations';
 import './admin.css';
 
-const sections = { overview: 'Overview', pharmacies: 'Pharmacies', medicines: 'Medicines', inventory: 'Inventory', customers: 'Customers' };
+const sections = { overview: 'Overview', pharmacies: 'Pharmacies', medicines: 'Medicines', inventory: 'Inventory', reservations: 'Reservations', customers: 'Customers' };
 const currentSection = () => Object.hasOwn(sections, location.hash.slice(1)) ? location.hash.slice(1) : 'overview';
 
 function Login({ onLogin, message }) {
@@ -77,7 +78,7 @@ function Overview({ onDetails }) {
         <Notice error>{error}</Notice>
         <div className="overview-grid"><div className="overview-main">
             <div className="stats-grid">{stats.map(([title, value, icon]) => <div className="stat" key={title}>
-                <span className="stat-icon"><Icon name={icon} /></span><p>{title}</p><strong>{value ?? '—'}</strong>
+                <span className="stat-icon"><Icon name={icon} /></span><div><p>{title}</p><strong>{value ?? '—'}</strong></div>
             </div>)}</div>
             <section className="panel status-panel"><header className="panel-header"><div><h2>Pharmacy status</h2><p>Listings by review status</p></div></header>
                 <div className="status-chart">{statuses.map((status) => {
@@ -151,6 +152,8 @@ function App() {
         content = <Medicines />;
     } else if (tab === 'inventory') {
         content = <Inventory />;
+    } else if (tab === 'reservations') {
+        content = <Reservations />;
     } else {
         content = <Directory key={tab} entity={tab} onChanged={() => setMessage(null)} onDetails={openDetails} />;
     }

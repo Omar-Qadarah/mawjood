@@ -6,6 +6,7 @@ export function Icon({ name, size = 19 }) {
         pharmacies: 'M3 21h18M5 21V8l7-4 7 4v13M12 10v6m-3-3h6',
         medicines: 'M18.4 5.6a4.5 4.5 0 0 1 0 6.4l-6.4 6.4a4.5 4.5 0 0 1-6.4-6.4L12 5.6a4.5 4.5 0 0 1 6.4 0zM8.8 8.8l6.4 6.4',
         inventory: 'M3 7l9-4 9 4v10l-9 4-9-4zm0 0 9 4 9-4M12 11v10M7.5 5l9 4',
+        reservations: 'M8 4H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2h-2M8 2h8v5H8zM8 12h8m-8 5h5',
         customers: 'M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2m20 0v-2a4 4 0 0 0-3-4M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8zm8-7a4 4 0 0 1 0 7',
         arrow: 'M5 12h14m-6-6 6 6-6 6',
         location: 'M20 10c0 5-8 11-8 11S4 15 4 10a8 8 0 1 1 16 0zM12 12a2 2 0 1 0 0-4 2 2 0 0 0 0 4z',

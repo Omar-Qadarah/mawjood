@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Api\V1\Admin\ActiveIngredientController;
 use App\Http\Controllers\Api\V1\Admin\AdminPharmacyController;
+use App\Http\Controllers\Api\V1\Admin\AdminReservationController;
 use App\Http\Controllers\Api\V1\Admin\CustomerController;
 use App\Http\Controllers\Api\V1\Admin\DashboardSummaryController;
 use App\Http\Controllers\Api\V1\Admin\InventoryController;
@@ -53,6 +54,7 @@ Route::prefix('v1')
                     ->whereNumber('inventoryItem')->name('inventory-items.receipts.store');
                 Route::post('inventory-items/{inventoryItem}/batches/{batch}/adjustments', [StockMovementController::class, 'adjust'])
                     ->whereNumber(['inventoryItem', 'batch'])->name('inventory-items.adjustments.store');
+                Route::apiResource('reservations', AdminReservationController::class)->only(['index', 'show', 'update']);
                 Route::get('dashboard/summary', DashboardSummaryController::class)
                     ->name('dashboard.summary');
             });

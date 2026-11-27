@@ -3,6 +3,8 @@
 namespace App\Models;
 
 use App\Enums\ReservationStatus;
+use Carbon\CarbonInterface;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -25,6 +27,15 @@ class Reservation extends Model
             'response_deadline' => 'datetime',
             'pickup_deadline' => 'datetime',
         ];
+    }
+
+    public function scopeDueForExpiry(Builder $query, CarbonInterface $cutoff): Builder
+    {
+        return $query->where(fn (Builder $due) => $due
+            ->where(fn (Builder $pending) => $pending->where('status', ReservationStatus::Pending->value)
+                ->where('response_deadline', '<=', $cutoff))
+            ->orWhere(fn (Builder $confirmed) => $confirmed->where('status', ReservationStatus::Confirmed->value)
+                ->where('pickup_deadline', '<=', $cutoff)));
     }
 
     public function user(): BelongsTo
