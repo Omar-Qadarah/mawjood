@@ -20,7 +20,7 @@ class UploadPrescriptionAction
                 'user_id' => $customer->id,
                 'image_path' => $path,
                 'status' => 'uploaded',
-                'delete_after' => now()->addDays(3),
+                'delete_after' => now()->addDays(config('prescriptions.retention_days')),
             ]);
         } catch (Throwable $exception) {
             try {

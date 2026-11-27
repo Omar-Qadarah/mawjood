@@ -56,7 +56,7 @@ class CreateReservationAction
             }
 
             if ($prescriptionId !== null && ! DB::table('prescriptions')->where('id', $prescriptionId)
-                ->where('user_id', $customer->id)->sharedLock()->first(['id'])) {
+                ->where('user_id', $customer->id)->whereNull('image_deleted_at')->sharedLock()->first(['id'])) {
                 throw ValidationException::withMessages(['prescription_id' => 'Choose one of your prescriptions.']);
             }
 
