@@ -35,13 +35,10 @@ class PharmacyApplicationSummaryTest extends TestCase
 
     public function test_ai_receives_only_aggregate_matches_and_completeness_flags(): void
     {
-        config(['services.openai.key' => 'fake-test-key']);
         Http::preventStrayRequests();
-        Http::fake(['https://api.openai.com/v1/responses' => Http::response([
-            'status' => 'completed',
-            'output' => [['type' => 'message', 'content' => [
-                ['type' => 'output_text', 'text' => 'Compare the possible overlaps before approval.'],
-            ]]],
+        Http::fake(['http://127.0.0.1:11434/api/chat' => Http::response([
+            'done' => true,
+            'message' => ['role' => 'assistant', 'content' => 'Compare the possible overlaps before approval.'],
         ])]);
 
         $pending = $this->pharmacy('PENDING');
@@ -59,9 +56,10 @@ class PharmacyApplicationSummaryTest extends TestCase
             ->assertJsonPath('data.summary', 'Compare the possible overlaps before approval.')
             ->assertJsonCount(3, 'data.matches')->assertJsonMissingPath('data.signals');
         Http::assertSentCount(1);
-        Http::assertSent(fn (ClientRequest $request) => $request->url() === 'https://api.openai.com/v1/responses'
-            && $request['store'] === false
-            && json_decode($request['input'], true, flags: JSON_THROW_ON_ERROR) === [
+        Http::assertSent(fn (ClientRequest $request) => $request->url() === 'http://127.0.0.1:11434/api/chat'
+            && $request['model'] === 'qwen2.5:1.5b'
+            && $request['stream'] === false
+            && json_decode($request['messages'][1]['content'], true, flags: JSON_THROW_ON_ERROR) === [
                 'matches' => ['total' => 3, 'name_only' => 1, 'address_only' => 1, 'name_and_address' => 1],
                 'completeness' => ['contact_provided' => true, 'opening_hours_provided' => false],
             ]);
@@ -70,9 +68,8 @@ class PharmacyApplicationSummaryTest extends TestCase
 
     public function test_directory_summary_is_returned_when_provider_is_unavailable(): void
     {
-        config(['services.openai.key' => 'fake-test-key']);
         Http::preventStrayRequests();
-        Http::fake(['https://api.openai.com/v1/responses' => Http::response([], 503)]);
+        Http::fake(['http://127.0.0.1:11434/api/chat' => Http::response([], 503)]);
 
         $pending = $this->pharmacy('PENDING');
         $this->actingAs(User::factory()->create(['platform_role' => PlatformRole::Admin, 'is_active' => true]), 'web');

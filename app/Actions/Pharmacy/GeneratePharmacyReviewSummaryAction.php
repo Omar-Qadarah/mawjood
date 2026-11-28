@@ -9,11 +9,6 @@ class GeneratePharmacyReviewSummaryAction
 {
     public function execute(array $signals): ?string
     {
-        $key = config('services.openai.key');
-        if (blank($key)) {
-            return null;
-        }
-
         $payload = [
             'matches' => [
                 'total' => (int) $signals['match_count'],
@@ -28,35 +23,26 @@ class GeneratePharmacyReviewSummaryAction
         ];
 
         try {
-            $response = Http::withToken($key)->acceptJson()->connectTimeout(3)->timeout(10)
-                ->withoutRedirecting()
-                ->post('https://api.openai.com/v1/responses', [
-                    'model' => config('services.openai.pharmacy_review_model'),
-                    'store' => false,
-                    'instructions' => 'Summarize these aggregate pharmacy-registration review signals in at most three short English sentences. Matching records indicate possible overlap. Do not infer identities, locations, or license validity, and do not make an approval or rejection decision. Mention missing information only if its indicator is false. Use only the supplied signals.',
-                    'input' => json_encode($payload, JSON_THROW_ON_ERROR),
-                    'max_output_tokens' => 200,
+            $response = Http::acceptJson()->connectTimeout(3)->timeout(30)
+                ->withoutRedirecting()->withOptions(['proxy' => ''])
+                ->post('http://127.0.0.1:11434/api/chat', [
+                    'model' => 'qwen2.5:1.5b',
+                    'stream' => false,
+                    'messages' => [
+                        [
+                            'role' => 'system',
+                            'content' => 'Write up to three short English sentences for an admin reviewing a pharmacy application. Use only these aggregate signals. Treat directory matches as possible overlaps. Mention missing contact or opening hours only if the corresponding flag is false. Do not infer identities, locations, or license validity. Do not decide whether to approve the application.',
+                        ],
+                        ['role' => 'user', 'content' => json_encode($payload, JSON_THROW_ON_ERROR)],
+                    ],
+                    'options' => ['num_ctx' => 2048, 'num_predict' => 160, 'temperature' => 0],
                 ])->throw()->json();
         } catch (HttpClientException) {
             return null;
         }
 
-        if (! is_array($response) || ($response['status'] ?? null) !== 'completed') {
-            return null;
-        }
+        $text = data_get($response, 'message.content');
 
-        foreach ($response['output'] ?? [] as $message) {
-            if (! is_array($message) || ($message['type'] ?? null) !== 'message') {
-                continue;
-            }
-            foreach ($message['content'] ?? [] as $content) {
-                if (is_array($content) && ($content['type'] ?? null) === 'output_text'
-                    && is_string($content['text'] ?? null) && filled($content['text'])) {
-                    return trim($content['text']);
-                }
-            }
-        }
-
-        return null;
+        return ($response['done'] ?? false) === true && is_string($text) && filled($text) ? trim($text) : null;
     }
 }
