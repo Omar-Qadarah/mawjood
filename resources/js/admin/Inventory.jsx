@@ -7,7 +7,7 @@ import { StockMovementForm } from './StockMovementForm';
 import { useTableLoader } from './useTableLoader';
 import { useSavedTableFilters } from './useSavedTableFilters';
 import { TableFilters } from './TableFilters';
-import { Details, Field, Modal, Notice, Status, TableAction } from './ui';
+import { Details, Field, Modal, Notice, RowActions, Status, TableAction } from './ui';
 
 const endpoint = '/admin/inventory-items';
 const expiringEndpoint = '/admin/inventory-batches/expiring';
@@ -64,12 +64,13 @@ function StockDetails({ item, onClose, onChanged }) {
                 <ResetSortButton sort={batchSort} small />
             </div>
             <div className="table-scroll"><table>
-                <TableHead columns={[["Batch","batch_no"],["Expiry date","expiry_date"],["Status","status"],["On hand","quantity_on_hand"],["Held","quantity_held"],["Available","available_quantity"],["Actions"]]} sort={batchSort} />
+                <TableHead columns={[["Batch","batch_no"],["Expiry date","expiry_date"],["Status","status","table-cell-centered"],["On hand","quantity_on_hand"],["Held","quantity_held"],["Available","available_quantity"],["Actions",null,"table-action-column"]]} sort={batchSort} />
                 <tbody>{data.batches.length ? sortRows(data.batches, batchSort, (row, key) => row[key]).map((batch) => <tr key={batch.id}>
                     <td>{batch.batch_no}</td><td>{batch.expiry_date}</td><td><Status status={batch.status} /></td>
                     <td>{batch.quantity_on_hand}</td><td>{batch.quantity_held}</td><td>{batch.available_quantity}</td>
-                    <td><TableAction icon="adjust" disabled={busy}
-                        label={'Adjust ' + batch.batch_no} onClick={() => openForm(batch)} /></td>
+                    <td className="table-action-column"><RowActions rowName={batch.batch_no}>
+                        <TableAction icon="adjust" disabled={busy} label={'Adjust ' + batch.batch_no} onClick={() => openForm(batch)} />
+                    </RowActions></td>
                 </tr>) : <tr><td className="empty" colSpan="7">No stock batches have been recorded.</td></tr>}</tbody>
             </table></div>
             <div className="table-section-heading"><h3>Recent stock movements</h3>
@@ -188,18 +189,19 @@ function InventoryTable({ table, initialStock, expiring, onClearRoute }) {
             </TableFilters>
             {expiring ? <ExpiringBatchesTable batches={loading || error ? [] : rows} emptyText={emptyText} onDetails={setSelected} sort={sort} onSort={() => changeFilter({})} />
                 : <div className="table-scroll"><table>
-                <TableHead columns={[["Pharmacy","pharmacy"],["Medicine","medicine"],["Selling price","price"],["Listing","listing"],["Available","available"],["Batches","batches"],["Details"]]} sort={sort} onSort={() => changeFilter({})} />
+                <TableHead columns={[["Pharmacy","pharmacy"],["Medicine","medicine"],["Selling price","price"],["Listing","listing","table-cell-centered"],["Available","available"],["Batches","batches"],["Details",null,"table-action-column"]]} sort={sort} onSort={() => changeFilter({})} />
                 <tbody>{!loading && !error && rows.length ? rows.map((item) => <tr key={item.id}>
                     <td><strong>{item.pharmacy.name_en}</strong><small className="table-secondary">{item.pharmacy.city}</small></td>
                     <td><strong>{item.medicine.name_en}</strong><small className="table-secondary">{item.medicine.strength_text}</small></td>
                     <td>{item.selling_price} {item.medicine.currency}</td>
                     <td><Status status={item.is_listed ? 'listed' : 'unlisted'} /></td>
                     <td>{item.available_quantity}</td><td>{item.batches_count}</td>
-                    <td><div className="row-actions"><TableAction icon="inventory" onClick={() => setSelected(item)}
+                    <td className="table-action-column"><RowActions rowName={item.medicine.name_en + ' at ' + item.pharmacy.name_en}>
+                        <TableAction icon="inventory" onClick={() => setSelected(item)}
                         label={'View batches for ' + item.medicine.name_en + ' at ' + item.pharmacy.name_en} />
                         <TableAction icon="edit" onClick={() => setListingForm({ item })}
                             label={'Edit listing for ' + item.medicine.name_en + ' at ' + item.pharmacy.name_en} />
-                    </div></td>
+                    </RowActions></td>
                 </tr>) : <tr><td className="empty" colSpan="7">{emptyText}</td></tr>}</tbody>
             </table></div>}
             {!loading && !error && result?.meta && <footer className="pagination">

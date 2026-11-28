@@ -6,7 +6,7 @@ import { MedicineEditor } from './MedicineEditor';
 import { useTableLoader } from './useTableLoader';
 import { useSavedTableFilters } from './useSavedTableFilters';
 import { TableFilters } from './TableFilters';
-import { Details, Field, Modal, Notice, Status, TableAction } from './ui';
+import { Details, Field, Modal, Notice, RowActions, Status, TableAction } from './ui';
 
 const endpoint = '/admin/medicines';
 const numberText = (value) => value == null ? '' : String(value).replace(/(\.\d*?[1-9])0+$/, '$1').replace(/\.0+$/, '');
@@ -181,16 +181,16 @@ export function Medicines() {
             </TableFilters>
             <div className="table-scroll">
                 <table>
-                    <TableHead columns={[["Medicine","name"],["Strength","strength"],["Package","package"],["Status","status"],["Actions"]]} sort={sort} onSort={() => changePage(1)} />
+                    <TableHead columns={[["Medicine","name"],["Strength","strength"],["Package","package","table-cell-centered"],["Status","status","table-cell-centered"],["Actions",null,"table-action-column"]]} sort={sort} onSort={() => changePage(1)} />
                     <tbody>{!loading && !error && rows.length ? rows.map((medicine) => <tr key={medicine.id}>
                         <td><strong>{medicine.name_en}</strong>{medicine.name_ar && <small className="table-secondary" lang="ar">{medicine.name_ar}</small>}
                             <small className="table-secondary">{medicine.manufacturer_name}</small></td>
                         <td>{medicine.strength_text}</td><td className="table-cell-centered">{packageSize(medicine)}</td><td><Status status={medicine.catalog_status} /></td>
-                        <td><div className="row-actions">
+                        <td className="table-action-column"><RowActions rowName={medicine.name_en}>
                             <TableAction icon="view" onClick={() => setSelection(medicine)} label={'View ' + medicine.name_en} />
                             <TableAction icon="edit" onClick={() => setEditor(medicine)} label={'Edit ' + medicine.name_en} />
                             <TableAction icon="delete" onClick={() => { setDeleteError(''); setDeleting(medicine); }} label={'Delete ' + medicine.name_en} />
-                        </div></td>
+                        </RowActions></td>
                     </tr>) : <tr><td className="empty" colSpan="5">{loading ? 'Loading medicines…'
                         : error ? 'Medicine results are unavailable.' : 'No medicines found.'}</td></tr>}</tbody>
                 </table>

@@ -4,7 +4,7 @@ import { api, places } from './api';
 import { useTableLoader } from './useTableLoader';
 import { useSavedTableFilters } from './useSavedTableFilters';
 import { TableFilters } from './TableFilters';
-import { Field, Notice, Status } from './ui';
+import { CopyableValue, Field, Notice, Status } from './ui';
 
 const endpoint = '/admin/reservations';
 const statuses = ['pending', 'confirmed', 'rejected', 'cancelled', 'completed', 'expired'];
@@ -89,14 +89,17 @@ export function Reservations({ initialStatus = '', initialGovernorate = '', init
                 </select></Field>
             </TableFilters>
             <div className="table-scroll"><table>
-                <TableHead columns={[["Reservation","code"],["Pharmacy","pharmacy"],["Status","status"],["Expiry deadline","deadline"]]} sort={sort} onSort={() => changeFilter({})} />
+                <TableHead columns={[["Reservation","code"],["Pharmacy","pharmacy"],["Status","status","table-cell-centered"],["Expiry deadline","deadline"]]} sort={sort} onSort={() => changeFilter({})} />
                 <tbody>{!loading && !error && rows.length ? rows.map((reservation) => {
                     const isResponseDeadline = reservation.status === 'pending' ||
                         (reservation.status === 'expired' && !reservation.pickup_deadline);
                     const deadline = isResponseDeadline ? reservation.response_deadline :
                         ['confirmed', 'expired'].includes(reservation.status) ? reservation.pickup_deadline : null;
                     return <tr key={reservation.id}>
-                        <td><strong>{reservation.code}</strong></td><td>{reservation.pharmacy.name_en}</td>
+                        <td><CopyableValue value={reservation.code} copyLabel={'Copy reservation code ' + reservation.code}>
+                            <strong>{reservation.code}</strong>
+                        </CopyableValue></td>
+                        <td>{reservation.pharmacy.name_en}</td>
                         <td><Status status={reservation.status} /></td>
                         <td>{formatDeadline(deadline)}
                             {deadline && <small className="table-secondary">{isResponseDeadline ? 'Response' : 'Pickup'}</small>}

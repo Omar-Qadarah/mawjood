@@ -51,9 +51,9 @@ export function ResetSortButton({ sort, onReset, small = false }) {
 }
 
 export function TableHead({ columns, sort, onSort }) {
-    return <thead><tr>{columns.map(([label, key]) => {
+    return <thead><tr>{columns.map(([label, key, className]) => {
         const active = Boolean(key && sort.column === key);
-        return <th key={label} scope="col" aria-sort={active ? (sort.direction === 'asc' ? 'ascending' : 'descending') : undefined}>
+        return <th key={label} scope="col" className={className} aria-sort={active ? (sort.direction === 'asc' ? 'ascending' : 'descending') : undefined}>
             {key ? <button type="button" className="table-sort" onClick={() => {
                 sort.toggle(key);
                 onSort?.();

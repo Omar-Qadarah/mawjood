@@ -6,7 +6,7 @@ import { useTableLoader } from './useTableLoader';
 import { useSavedTableFilters } from './useSavedTableFilters';
 import { TableFilters } from './TableFilters';
 import { PharmacyForm, weekdays } from './PharmacyForm';
-import { Details, Field, Icon, Modal, Notice, Status, TableAction } from './ui';
+import { Details, Field, Icon, LicensePopover, Modal, Notice, RowActions, Status, TableAction } from './ui';
 
 function CustomerForm({ customer, onClose, onSave }) {
     const [error, setError] = useState('');
@@ -172,22 +172,24 @@ export function Directory({ entity, initialStatus = '', initialGovernorate = '',
             </TableFilters>
             <div className="table-scroll">
                 <table>
-                    <TableHead columns={pharmacy ? [["Pharmacy","name"],["License","license"],["City","city"],["Status","status"],["Members","members"],["Actions"]] :
-                        [["Customer","name"],["Email","email"],["Status","status"],["Memberships","members"],["Actions"]]} sort={sort} onSort={() => setPage(1)} />
+                    <TableHead columns={pharmacy ? [["Pharmacy","name"],["License","license","table-license-column"],["City","city","table-cell-centered"],["Status","status","table-cell-centered"],["Members","members","table-cell-centered"],["Actions",null,"table-action-column"]] :
+                        [["Customer","name"],["Email","email"],["Status","status","table-cell-centered"],["Memberships","members","table-cell-centered"],["Actions",null,"table-action-column"]]} sort={sort} onSort={() => setPage(1)} />
                     <tbody>
                         {results?.data.length ? results.data.map((entry) => <tr key={entry.id}>
                             <td><strong>{pharmacy ? entry.name_en : entry.name}</strong>{pharmacy && <small className="table-secondary" lang="ar">{entry.name_ar}</small>}</td>
-                            <td className={pharmacy ? 'table-nowrap' : undefined}>{pharmacy ? entry.license_no : entry.email || '—'}</td>
+                            {pharmacy
+                                ? <td className="table-license-column"><LicensePopover pharmacy={entry.name_en} value={entry.license_no} /></td>
+                                : <td>{entry.email || '—'}</td>}
                             {pharmacy && <td className="table-cell-centered">{entry.city}</td>}
                             <td><Status status={pharmacy ? entry.status : entry.is_active ? 'active' : 'inactive'} /></td>
                             <td className="table-cell-centered">{entry.memberships_count}</td>
-                            <td><div className="row-actions">
+                            <td className="table-action-column"><RowActions rowName={pharmacy ? entry.name_en : entry.name}>
                                 <TableAction icon={pharmacy && entry.status === 'pending' ? 'reservations' : 'view'}
                                     label={pharmacy && entry.status === 'pending' ? 'Review application for ' + entry.name_en : 'View ' + (pharmacy ? entry.name_en : entry.name)}
                                     onClick={() => onDetails(entity, entry.id)} />
                                 <TableAction icon="edit" label={'Edit ' + (pharmacy ? entry.name_en : entry.name)} onClick={() => setEditor(entry)} />
                                 <TableAction icon="delete" label={'Delete ' + (pharmacy ? entry.name_en : entry.name)} onClick={() => setDeletion(entry)} />
-                            </div></td>
+                            </RowActions></td>
                         </tr>) : <tr><td className="empty" colSpan={pharmacy ? 6 : 5}>{results ? 'No matching ' + entity + '.' : 'Loading ' + entity + '…'}</td></tr>}
                     </tbody>
                 </table>

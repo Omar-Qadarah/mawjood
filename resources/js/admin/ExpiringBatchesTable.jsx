@@ -1,7 +1,7 @@
 import { TableHead } from './TableSort';
-import { Status, TableAction } from './ui';
+import { RowActions, Status, TableAction } from './ui';
 
-const columns = [["Batch","batch"],["Expiry date","expiry"],["Pharmacy","pharmacy"],["Medicine","medicine"],["On hand","on_hand"],["Status","status"],["Details"]];
+const columns = [["Batch","batch"],["Expiry date","expiry"],["Pharmacy","pharmacy"],["Medicine","medicine"],["On hand","on_hand"],["Status","status","table-cell-centered"],["Details",null,"table-action-column"]];
 
 export function ExpiringBatchesTable({ batches, emptyText, onDetails, sort, onSort }) {
     return <div className="table-scroll"><table>
@@ -14,8 +14,9 @@ export function ExpiringBatchesTable({ batches, emptyText, onDetails, sort, onSo
             <td><strong>{batch.item.medicine.name_en}</strong><small className="table-secondary">{batch.item.medicine.strength_text}</small></td>
             <td>{batch.quantity_on_hand}</td>
             <td><Status status={batch.status} /></td>
-            <td><TableAction icon="view" onClick={() => onDetails(batch.item)}
-                label={'View stock for ' + batch.batch_no} /></td>
+            <td className="table-action-column"><RowActions rowName={batch.batch_no}>
+                <TableAction icon="view" onClick={() => onDetails(batch.item)} label={'View stock for ' + batch.batch_no} />
+            </RowActions></td>
         </tr>) : <tr><td className="empty" colSpan={columns.length}>{emptyText}</td></tr>}</tbody>
     </table></div>;
 }

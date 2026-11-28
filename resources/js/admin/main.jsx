@@ -94,7 +94,7 @@ function Overview({ onDetails, refresh }) {
                     <ResetSortButton sort={recentSort} small />
                     <a className="text-button" href="#pharmacies">View all</a>
                 </div></header>
-                <div className="table-scroll"><table><TableHead columns={[["Pharmacy","name_en"],["Added","created_at"],["Status","status"]]} sort={recentSort} />
+                <div className="table-scroll"><table><TableHead columns={[["Pharmacy","name_en"],["Added","created_at"],["Status","status","table-cell-centered"]]} sort={recentSort} />
                     <tbody>{summary?.recent_pharmacies.length ? sortRows(summary.recent_pharmacies, recentSort, (row, key) => row[key]).map((pharmacy) => <tr key={pharmacy.id}>
                         <td><button className="text-button" onClick={() => onDetails('pharmacies', pharmacy.id)}>{pharmacy.name_en}</button></td>
                         <td>{new Date(pharmacy.created_at).toLocaleDateString()}</td><td><Status status={pharmacy.status} /></td>

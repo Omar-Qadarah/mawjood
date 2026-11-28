@@ -4,7 +4,7 @@ import { api } from './api';
 import { useTableLoader } from './useTableLoader';
 import { useSavedTableFilters } from './useSavedTableFilters';
 import { TableFilters } from './TableFilters';
-import { Field, Modal, Notice, TableAction } from './ui';
+import { Field, Modal, Notice, RowActions, TableAction } from './ui';
 
 const endpoint = '/admin/active-ingredients';
 
@@ -94,16 +94,16 @@ export function IngredientManager({ onClose }) {
             <button className="button primary" type="button" onClick={() => { setError(''); setNotice(''); setEditor({}); }}>Add active ingredient</button>
         </TableFilters>}
         <div className="table-scroll"><table>
-            <TableHead columns={[["Ingredient","name"],["ATC code","atc"],["Packages","packages"],["Actions"]]} sort={sort} onSort={() => setPage(1)} />
+            <TableHead columns={[["Ingredient","name"],["ATC code","atc"],["Packages","packages","table-cell-centered"],["Actions",null,"table-action-column"]]} sort={sort} onSort={() => setPage(1)} />
             <tbody>{result?.data.length ? result.data.map((ingredient) => <tr key={ingredient.id}>
                 <td><strong>{ingredient.name_en}</strong>{ingredient.name_ar && <small className="table-secondary" lang="ar">{ingredient.name_ar}</small>}</td>
                 <td>{ingredient.atc_code || '—'}</td><td className="table-cell-centered">{ingredient.medicine_ingredients_count}</td>
-                <td><div className="row-actions">
+                <td className="table-action-column"><RowActions rowName={ingredient.name_en}>
                     <TableAction icon="edit" label={'Edit ' + ingredient.name_en} disabled={busy} onClick={() => { setError(''); setNotice(''); setDeleting(null); setEditor(ingredient); }} />
                     <TableAction icon="delete" label={'Delete ' + ingredient.name_en} disabled={busy || ingredient.medicine_ingredients_count > 0}
                         title={ingredient.medicine_ingredients_count > 0 ? 'This ingredient is used by a medicine package.' : undefined}
                         onClick={() => { setError(''); setNotice(''); setEditor(null); setDeleting(ingredient); }} />
-                </div></td>
+                </RowActions></td>
             </tr>) : <tr><td className="empty" colSpan="4">{result ? 'No ingredients found.' : 'Loading ingredients…'}</td></tr>}</tbody>
         </table></div>
         {result && <footer className="pagination">
