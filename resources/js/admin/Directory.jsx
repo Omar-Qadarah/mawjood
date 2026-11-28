@@ -3,6 +3,7 @@ import { PharmacyReviewSummary } from './PharmacyReviewSummary';
 import { useEffect, useState } from 'react';
 import { api, places } from './api';
 import { useTableLoader } from './useTableLoader';
+import { useSavedTableFilters } from './useSavedTableFilters';
 import { TableFilters } from './TableFilters';
 import { PharmacyForm, weekdays } from './PharmacyForm';
 import { Details, Field, Icon, Modal, Notice, Status, TableAction } from './ui';
@@ -75,12 +76,15 @@ export function Directory({ entity, initialStatus = '', initialGovernorate = '',
     const singular = pharmacy ? 'pharmacy' : 'customer';
     const path = '/admin/' + entity;
     const statuses = pharmacy ? ['pending', 'active', 'suspended'] : ['active', 'inactive'];
-    const [filters, setFilters] = useState({
-        search: '',
-        status: statuses.includes(initialStatus) ? initialStatus : '',
-        governorate: pharmacy && Object.hasOwn(places, initialGovernorate) ? initialGovernorate : '',
-        city: '',
-    });
+    const routeFilters = {};
+    if (statuses.includes(initialStatus)) routeFilters.status = initialStatus;
+    if (pharmacy && Object.hasOwn(places, initialGovernorate)) {
+        routeFilters.governorate = initialGovernorate;
+        routeFilters.city = '';
+    }
+    const [filters, updateFilters, resetFilters] = useSavedTableFilters(entity, {
+        search: '', status: '', governorate: '', city: '',
+    }, routeFilters);
     const sort = useTableSort(entity);
     const [page, setPage] = useState(1);
     const [revision, setRevision] = useState(0);
@@ -108,15 +112,16 @@ export function Directory({ entity, initialStatus = '', initialGovernorate = '',
         });
 
         return () => { current = false; cancel?.(); };
-    }, [loadTable, path, page, filters, revision, refresh, sort.column, sort.direction]);
+    }, [loadTable, path, page, filters, revision, refresh, sort.column, sort.direction, sort.params.sort]);
 
     function filter(key, value) {
         setPage(1);
-        setFilters((previous) => ({ ...previous, [key]: value, ...(key === 'governorate' ? { city: '' } : {}) }));
+        updateFilters({ [key]: value, ...(key === 'governorate' ? { city: '' } : {}) });
+        if (Object.hasOwn(routeFilters, key)) onClearRoute();
     }
 
     function clearFilters() {
-        setFilters({ search: '', status: '', governorate: '', city: '' });
+        resetFilters();
         setPage(1);
         onClearRoute();
     }
@@ -153,7 +158,7 @@ export function Directory({ entity, initialStatus = '', initialGovernorate = '',
         </div>
         <Notice error={message?.error}>{message?.text}</Notice>
         <div className="panel directory">
-            <TableFilters onClear={clearFilters} search={filters.search} onSearch={(value) => filter('search', value)} maxLength={100}
+            <TableFilters onClear={clearFilters} sort={sort} onSortReset={() => setPage(1)} search={filters.search} onSearch={(value) => filter('search', value)} maxLength={100}
                 placeholder={pharmacy ? 'Name, license, or city' : 'Name or email'}>
                 <Field label="Status"><select value={filters.status} onChange={(event) => filter('status', event.target.value)}>
                     <option value="">All statuses</option>{statuses.map((status) =>

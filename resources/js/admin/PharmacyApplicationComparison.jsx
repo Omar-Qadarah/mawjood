@@ -1,4 +1,4 @@
-import { sortRows, TableHead, useTableSort } from './TableSort';
+import { ResetSortButton, sortRows, TableHead, useTableSort } from './TableSort';
 import { useEffect, useRef, useState } from 'react';
 import { api } from './api';
 import { Notice, Status } from './ui';
@@ -55,7 +55,10 @@ export function PharmacyApplicationComparison({ application, match, headingRef, 
     return <section className="pharmacy-comparison" aria-labelledby="pharmacy-comparison-heading">
         <header className="pharmacy-comparison-header">
             <h3 id="pharmacy-comparison-heading" ref={headingRef} tabIndex={-1}>Compare pharmacies</h3>
-            <button className="button small secondary" type="button" disabled={approving} onClick={onClose}>Back to matches</button>
+            <div className="table-controls">
+                <ResetSortButton sort={sort} small />
+                <button className="button small secondary" type="button" disabled={approving} onClick={onClose}>Back to matches</button>
+            </div>
         </header>
         <div className="table-scroll">
             <table aria-label="Side-by-side pharmacy comparison">

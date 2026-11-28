@@ -2,6 +2,7 @@ import { TableHead, useTableSort } from './TableSort';
 import { useEffect, useState } from 'react';
 import { api, places } from './api';
 import { useTableLoader } from './useTableLoader';
+import { useSavedTableFilters } from './useSavedTableFilters';
 import { TableFilters } from './TableFilters';
 import { Field, Notice, Status } from './ui';
 
@@ -18,14 +19,14 @@ function formatDeadline(value) {
 }
 
 export function Reservations({ initialStatus = '', initialGovernorate = '', initialDeadline = '', onClearRoute }) {
-    const sort = useTableSort('reservations', initialDeadline ? 'deadline' : undefined);
-    const [filter, setFilter] = useState({
-        search: '',
-        status: statuses.includes(initialStatus) ? initialStatus : '',
-        governorate: Object.hasOwn(places, initialGovernorate) ? initialGovernorate : '',
-        deadline: initialDeadline,
-        page: 1,
-    });
+    const routeFilters = {};
+    if (statuses.includes(initialStatus)) routeFilters.status = initialStatus;
+    if (Object.hasOwn(places, initialGovernorate)) routeFilters.governorate = initialGovernorate;
+    if (initialDeadline) routeFilters.deadline = initialDeadline;
+    const [filter, updateFilters, clearFilters] = useSavedTableFilters('reservations', {
+        search: '', status: '', governorate: '', deadline: '', page: 1,
+    }, routeFilters);
+    const sort = useTableSort('reservations', filter.deadline ? 'deadline' : undefined);
     const [result, setResult] = useState(null);
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(true);
@@ -51,7 +52,8 @@ export function Reservations({ initialStatus = '', initialGovernorate = '', init
     function changeFilter(changes) {
         setLoading(true);
         setError('');
-        setFilter((previous) => ({ ...previous, page: 1, ...changes }));
+        updateFilters({ page: 1, ...changes });
+        if (Object.keys(changes).some((key) => Object.hasOwn(routeFilters, key))) onClearRoute();
     }
 
     const rows = result?.data ?? [];
@@ -65,9 +67,11 @@ export function Reservations({ initialStatus = '', initialGovernorate = '', init
             <p>Monitor reservation statuses and deadlines in Jordan time.</p></div></div>
         <Notice error>{error}</Notice>
         <div className="panel directory" aria-busy={loading}>
-            <TableFilters label="Search reservations" search={filter.search} onSearch={(search) => changeFilter({ search })}
+            <TableFilters sort={sort} onSortReset={() => changeFilter({})} label="Search reservations" search={filter.search} onSearch={(search) => changeFilter({ search })}
                 onClear={() => {
-                    changeFilter({ search: '', governorate: '', status: '', deadline: '' });
+                    setLoading(true);
+                    setError('');
+                    clearFilters();
                     onClearRoute();
                 }}
                 placeholder="Reservation code or pharmacy name">

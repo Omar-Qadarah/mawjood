@@ -1,9 +1,10 @@
-import { sortRows, TableHead, useTableSort } from './TableSort';
+import { ResetSortButton, sortRows, TableHead, useTableSort } from './TableSort';
 import { useEffect, useState } from 'react';
 import { api } from './api';
 import { IngredientManager } from './IngredientManager';
 import { MedicineEditor } from './MedicineEditor';
 import { useTableLoader } from './useTableLoader';
+import { useSavedTableFilters } from './useSavedTableFilters';
 import { TableFilters } from './TableFilters';
 import { Details, Field, Modal, Notice, Status, TableAction } from './ui';
 
@@ -53,7 +54,9 @@ export function MedicineDetails({ summary, onClose }) {
                 'Official price': medicine.official_price == null ? null : medicine.official_price + ' ' + medicine.currency,
                 'Price effective date': medicine.official_price_effective_date,
             }} />
-            <h3>Active ingredients</h3>
+            <div className="table-section-heading"><h3>Active ingredients</h3>
+                <ResetSortButton sort={ingredientSort} small />
+            </div>
             <div className="table-scroll">
                 <table>
                     <TableHead columns={[["Ingredient","name_en"],["Strength","strength_value"],["Per","per_value"]]} sort={ingredientSort} />
@@ -70,8 +73,7 @@ export function MedicineDetails({ summary, onClose }) {
 }
 
 export function Medicines() {
-    const [search, setSearch] = useState('');
-    const [status, setStatus] = useState('');
+    const [{ search, status }, updateFilters, resetFilters] = useSavedTableFilters('medicines', { search: '', status: '' });
     const sort = useTableSort('medicines', 'name');
     const [page, setPage] = useState(1);
     const [result, setResult] = useState(null);
@@ -107,7 +109,7 @@ export function Medicines() {
         });
 
         return () => { current = false; cancel?.(); };
-    }, [loadTable, search, status, page, revision, sort.column, sort.direction]);
+    }, [loadTable, search, status, page, revision, sort.column, sort.direction, sort.params.sort]);
 
     function startLoading() {
         setLoading(true);
@@ -117,21 +119,20 @@ export function Medicines() {
     function searchCatalog(value) {
         if (value === search) return;
         startLoading();
-        setSearch(value);
+        updateFilters({ search: value });
         setPage(1);
     }
 
     function filterStatus(value) {
         startLoading();
-        setStatus(value);
+        updateFilters({ status: value });
         setPage(1);
     }
 
     function clearFilters() {
         if (!search && !status && page === 1) return;
         startLoading();
-        setSearch('');
-        setStatus('');
+        resetFilters();
         setPage(1);
     }
 
@@ -171,7 +172,7 @@ export function Medicines() {
         </div>
         <Notice error>{error}</Notice><Notice>{notice}</Notice>
         <div className="panel directory" aria-busy={loading}>
-            <TableFilters onClear={clearFilters} label="Search medicines" search={search} onSearch={searchCatalog}
+            <TableFilters onClear={clearFilters} sort={sort} onSortReset={() => changePage(1)} label="Search medicines" search={search} onSearch={searchCatalog}
                 placeholder="Name, ingredient, barcode, or JFDA number">
                 <Field label="Catalog status"><select value={status} onChange={(event) => filterStatus(event.target.value)}>
                     <option value="">All statuses</option>
@@ -202,7 +203,7 @@ export function Medicines() {
         </div>
         {selection && <MedicineDetails summary={selection} onClose={() => setSelection(null)} />}
         {editor && <MedicineEditor id={editor.id} onClose={() => setEditor(null)} onSaved={(message) => {
-            if (!editor.id) { setSearch(''); setStatus(''); setPage(1); }
+            if (!editor.id) { resetFilters(); setPage(1); }
             setEditor(null);
             refresh(message);
         }} />}

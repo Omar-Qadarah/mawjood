@@ -1,4 +1,4 @@
-import { sortRows, TableHead, useTableSort } from './TableSort';
+import { ResetSortButton, sortRows, TableHead, useTableSort } from './TableSort';
 import { useEffect, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import { api, signIn } from './api';
@@ -10,6 +10,7 @@ import { Reservations } from './Reservations';
 import { RegistrationTrend } from './RegistrationTrend';
 import { ProfileSettings } from './ProfileSettings';
 import { Sidebar, sections } from './Sidebar';
+import { TableFilterAccount } from './useSavedTableFilters';
 import './admin.css';
 
 const currentHash = () => location.hash.slice(1);
@@ -89,7 +90,10 @@ function Overview({ onDetails, refresh }) {
         </div>
             <JordanMap sites={sites} />
             <section className="panel recent-panel"><header className="panel-header"><div><h2>Recently added pharmacies</h2><p>Latest records in the directory</p></div>
-                <a className="text-button" href="#pharmacies">View all</a></header>
+                <div className="table-controls">
+                    <ResetSortButton sort={recentSort} small />
+                    <a className="text-button" href="#pharmacies">View all</a>
+                </div></header>
                 <div className="table-scroll"><table><TableHead columns={[["Pharmacy","name_en"],["Added","created_at"],["Status","status"]]} sort={recentSort} />
                     <tbody>{summary?.recent_pharmacies.length ? sortRows(summary.recent_pharmacies, recentSort, (row, key) => row[key]).map((pharmacy) => <tr key={pharmacy.id}>
                         <td><button className="text-button" onClick={() => onDetails('pharmacies', pharmacy.id)}>{pharmacy.name_en}</button></td>
@@ -147,8 +151,8 @@ function Overview({ onDetails, refresh }) {
 
 function App() {
     const [user, setUser] = useState(undefined);
-    const [hash, setHash] = useState(currentHash);
-    const [section, query] = hash.split('?');
+    const [route, setRoute] = useState(() => ({ hash: currentHash(), entry: 0 }));
+    const [section, query] = route.hash.split('?');
     const tab = Object.hasOwn(sections, section) ? section : 'overview';
     const params = new URLSearchParams(query);
     const status = params.get('status') ?? '';
@@ -157,7 +161,10 @@ function App() {
     const [pharmacyRevision, setPharmacyRevision] = useState(0);
 
     useEffect(() => {
-        const navigate = () => setHash(currentHash());
+        const navigate = () => {
+            const hash = currentHash();
+            setRoute((previous) => ({ hash, entry: previous.entry + 1 }));
+        };
         window.addEventListener('hashchange', navigate);
         api('/auth/me').then(({ data }) => setUser(data.platform_role === 'admin' ? data : null)).catch(() => setUser(null));
         return () => window.removeEventListener('hashchange', navigate);
@@ -166,7 +173,7 @@ function App() {
     function clearRouteFilters() {
         if (!query) return;
         window.history.replaceState(window.history.state, '', '#' + tab);
-        setHash(tab);
+        setRoute((previous) => ({ ...previous, hash: tab }));
     }
 
     async function openDetails(entity, id) {
@@ -211,19 +218,19 @@ function App() {
     } else if (tab === 'reservations') {
         const governorate = params.get('governorate') ?? '';
         const deadline = params.get('deadline') === 'upcoming' ? 'upcoming' : '';
-        content = <Reservations onClearRoute={clearRouteFilters} key={status + ':' + governorate + ':' + deadline}
+        content = <Reservations onClearRoute={clearRouteFilters} key={route.entry}
             initialStatus={status} initialGovernorate={governorate} initialDeadline={deadline} />;
     } else if (tab === 'profile') {
         content = <ProfileSettings user={user} onUpdated={setUser} />;
     } else {
         const initialStatus = tab === 'pharmacies' ? status : '';
         const initialGovernorate = tab === 'pharmacies' ? params.get('governorate') ?? '' : '';
-        content = <Directory onClearRoute={clearRouteFilters} key={tab + ':' + initialStatus + ':' + initialGovernorate} entity={tab}
+        content = <Directory onClearRoute={clearRouteFilters} key={route.entry} entity={tab}
             initialStatus={initialStatus} initialGovernorate={initialGovernorate}
             onChanged={() => setMessage(null)} onDetails={openDetails} refresh={tab === 'pharmacies' ? pharmacyRevision : 0} />;
     }
 
-    return <div className="workspace">
+    return <TableFilterAccount.Provider key={user.id} value={user.id}><div className="workspace">
         <Sidebar user={user} tab={tab} onLogout={logout} onOpenRecord={openQuickJumpRecord} />
         <main className="content">
             <Notice error={message?.error}>{message?.text}</Notice>
@@ -232,7 +239,7 @@ function App() {
         {detail && (detail.entity === 'medicines'
             ? <MedicineDetails summary={detail.record} onClose={() => setDetail(null)} />
             : <RecordDetails {...detail} onClose={() => setDetail(null)} onApproved={pharmacyApproved} />)}
-    </div>;
+    </div></TableFilterAccount.Provider>;
 }
 
 createRoot(document.querySelector('#mawjood-admin')).render(<App />);

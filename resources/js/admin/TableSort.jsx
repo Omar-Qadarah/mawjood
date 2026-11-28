@@ -30,7 +30,24 @@ export function useTableSort(table, defaultColumn, defaultDirection = 'asc') {
         }
     }
 
-    return { column, direction, toggle, params: selection ? { sort: column, direction } : {} };
+    function reset() {
+        setSelection(null);
+        try {
+            window.localStorage.removeItem(storageKey);
+        } catch {
+            // Reset the visible order even when storage is disabled.
+        }
+    }
+
+    return { column, direction, toggle, reset, hasSelection: selection !== null, params: selection ? { sort: column, direction } : {} };
+}
+
+export function ResetSortButton({ sort, onReset, small = false }) {
+    return <button className={'button secondary' + (small ? ' small' : '')} type="button" disabled={!sort.hasSelection}
+        onClick={() => {
+            sort.reset();
+            onReset?.();
+        }}>Reset sort</button>;
 }
 
 export function TableHead({ columns, sort, onSort }) {

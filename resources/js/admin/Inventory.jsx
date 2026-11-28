@@ -1,10 +1,11 @@
-import { sortRows, TableHead, useTableSort } from './TableSort';
+import { ResetSortButton, sortRows, TableHead, useTableSort } from './TableSort';
 import { useEffect, useState } from 'react';
 import { api } from './api';
 import { ExpiringBatchesTable } from './ExpiringBatchesTable';
 import { InventoryListingForm } from './InventoryListingForm';
 import { StockMovementForm } from './StockMovementForm';
 import { useTableLoader } from './useTableLoader';
+import { useSavedTableFilters } from './useSavedTableFilters';
 import { TableFilters } from './TableFilters';
 import { Details, Field, Modal, Notice, Status, TableAction } from './ui';
 
@@ -59,7 +60,9 @@ function StockDetails({ item, onClose, onChanged }) {
             {form ? <StockMovementForm key={form.batch?.id ?? 'receipt'} item={item} batch={form.batch}
                 onCancel={() => setForm(null)} onSaved={saved} onBusyChange={setBusy} />
                 : <button className="button primary" type="button" onClick={() => openForm()}>Receive stock</button>}
-            <h3>Stock batches</h3>
+            <div className="table-section-heading"><h3>Stock batches</h3>
+                <ResetSortButton sort={batchSort} small />
+            </div>
             <div className="table-scroll"><table>
                 <TableHead columns={[["Batch","batch_no"],["Expiry date","expiry_date"],["Status","status"],["On hand","quantity_on_hand"],["Held","quantity_held"],["Available","available_quantity"],["Actions"]]} sort={batchSort} />
                 <tbody>{data.batches.length ? sortRows(data.batches, batchSort, (row, key) => row[key]).map((batch) => <tr key={batch.id}>
@@ -69,7 +72,9 @@ function StockDetails({ item, onClose, onChanged }) {
                         label={'Adjust ' + batch.batch_no} onClick={() => openForm(batch)} /></td>
                 </tr>) : <tr><td className="empty" colSpan="7">No stock batches have been recorded.</td></tr>}</tbody>
             </table></div>
-            <h3>Recent stock movements</h3>
+            <div className="table-section-heading"><h3>Recent stock movements</h3>
+                <ResetSortButton sort={movementSort} small />
+            </div>
             <div className="table-scroll"><table>
                 <TableHead columns={[["When","created_at"],["Batch","batch_no"],["Movement","type"],["Change","quantity"],["Reason","reason"]]} sort={movementSort} />
                 <tbody>{data.movements.length ? sortRows(data.movements, movementSort, (row, key) => row[key]).map((movement) => <tr key={movement.id}>
@@ -84,12 +89,19 @@ function StockDetails({ item, onClose, onChanged }) {
 }
 
 export function Inventory({ initialStock = '', expiring = false, onClearRoute }) {
+    const table = expiring ? 'expiring-batches' : 'inventory';
+    return <InventoryTable key={table + ':' + initialStock} table={table} initialStock={initialStock} expiring={expiring} onClearRoute={onClearRoute} />;
+}
+
+function InventoryTable({ table, initialStock, expiring, onClearRoute }) {
     const listingSort = useTableSort('inventory');
     const expirySort = useTableSort('expiring-batches', 'expiry');
     const sort = expiring ? expirySort : listingSort;
     const [pharmacies, setPharmacies] = useState(null);
     const [pharmacyError, setPharmacyError] = useState('');
-    const [filter, setFilter] = useState({ pharmacy: '', search: '', listing: '', stock: initialStock, page: 1 });
+    const [filter, updateFilters, clearFilters] = useSavedTableFilters(table, {
+        pharmacy: '', search: '', listing: '', stock: '', page: 1,
+    }, initialStock ? { stock: initialStock } : {});
     const [result, setResult] = useState(null);
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(true);
@@ -131,7 +143,8 @@ export function Inventory({ initialStock = '', expiring = false, onClearRoute })
     function changeFilter(changes) {
         setLoading(true);
         setError('');
-        setFilter((previous) => ({ ...previous, page: 1, ...changes }));
+        updateFilters({ page: 1, ...changes });
+        if (initialStock && Object.hasOwn(changes, 'stock')) onClearRoute();
     }
 
     const rows = result?.data ?? [];
@@ -148,9 +161,11 @@ export function Inventory({ initialStock = '', expiring = false, onClearRoute })
         <Notice>{notice}</Notice>
         <Notice error>{error}</Notice><Notice error>{pharmacyError}</Notice>
         <div className="panel directory" aria-busy={loading}>
-            <TableFilters label="Search inventory" search={filter.search} onSearch={(search) => changeFilter({ search })}
+            <TableFilters sort={sort} onSortReset={() => changeFilter({})} label="Search inventory" search={filter.search} onSearch={(search) => changeFilter({ search })}
                 onClear={() => {
-                    changeFilter({ search: '', pharmacy: '', listing: '', stock: '' });
+                    setLoading(true);
+                    setError('');
+                    clearFilters();
                     onClearRoute();
                 }}
                 placeholder="Pharmacy, medicine, or batch number">

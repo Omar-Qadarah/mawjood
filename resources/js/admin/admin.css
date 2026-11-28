@@ -453,6 +453,16 @@ td strong,
     gap: 8px;
     padding: 9px 10px;
 }
+.table-controls,
+.table-section-heading {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+.table-section-heading {
+    justify-content: space-between;
+}
 .table-filters .field {
     flex: 1 1 130px;
     min-width: 0;
@@ -1048,7 +1058,7 @@ td .row-actions {
     gap: 8px;
 }
 .review-overview-header .button,
-.pharmacy-comparison-header .button {
+.pharmacy-comparison-header .table-controls {
     margin-inline-start: auto;
 }
 .review-overview-icon {

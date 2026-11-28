@@ -2,14 +2,14 @@ import { TableHead, useTableSort } from './TableSort';
 import { useEffect, useState } from 'react';
 import { api } from './api';
 import { useTableLoader } from './useTableLoader';
+import { useSavedTableFilters } from './useSavedTableFilters';
 import { TableFilters } from './TableFilters';
 import { Field, Modal, Notice, TableAction } from './ui';
 
 const endpoint = '/admin/active-ingredients';
 
 export function IngredientManager({ onClose }) {
-    const [search, setSearch] = useState('');
-    const [usage, setUsage] = useState('');
+    const [{ search, usage }, updateFilters, clearFilters] = useSavedTableFilters('active-ingredients', { search: '', usage: '' });
     const sort = useTableSort('active-ingredients', 'name');
     const [page, setPage] = useState(1);
     const [revision, setRevision] = useState(0);
@@ -35,7 +35,7 @@ export function IngredientManager({ onClose }) {
             }
         });
         return () => { current = false; cancel?.(); };
-    }, [loadTable, search, usage, page, revision, sort.column, sort.direction]);
+    }, [loadTable, search, usage, page, revision, sort.column, sort.direction, sort.params.sort]);
 
     async function write(method, id, body) {
         setBusy(true);
@@ -44,8 +44,7 @@ export function IngredientManager({ onClose }) {
         try {
             await api(endpoint + (id ? '/' + id : ''), { method, body });
             if (method === 'POST') {
-                setSearch('');
-                setUsage('');
+                clearFilters();
                 setPage(1);
             }
             setEditor(null);
@@ -78,16 +77,15 @@ export function IngredientManager({ onClose }) {
             <footer className="form-actions"><button className="button secondary" type="button" onClick={() => { setDeleting(null); setError(''); }} disabled={busy}>Cancel</button>
                 <button className="button danger" type="button" disabled={busy} onClick={() => write('DELETE', deleting.id)}>Confirm delete ingredient</button></footer>
         </div>}
-        {!editor && !deleting && <TableFilters label="Search active ingredients" search={search} placeholder="Name or ATC code"
+        {!editor && !deleting && <TableFilters sort={sort} onSortReset={() => setPage(1)} label="Search active ingredients" search={search} placeholder="Name or ATC code"
             onClear={() => {
                 setError('');
-                setSearch('');
-                setUsage('');
+                clearFilters();
                 setPage(1);
             }}
-            onSearch={(value) => { setError(''); setSearch(value); setPage(1); }}>
+            onSearch={(value) => { setError(''); updateFilters({ search: value }); setPage(1); }}>
             <Field label="Package usage"><select value={usage} onChange={(event) => {
-                setError(''); setUsage(event.target.value); setPage(1);
+                setError(''); updateFilters({ usage: event.target.value }); setPage(1);
             }}>
                 <option value="">All ingredients</option>
                 <option value="used">Used in a package</option>
