@@ -1,3 +1,4 @@
+import { PharmacyReviewSummary } from './PharmacyReviewSummary';
 import { useEffect, useState } from 'react';
 import { api, places } from './api';
 import { useTableLoader } from './useTableLoader';
@@ -45,7 +46,7 @@ function formatHours(hours) {
         ' · ' + slot.opens_at + '–' + slot.closes_at).join('\n');
 }
 
-export function RecordDetails({ entity, record, onClose }) {
+export function RecordDetails({ entity, record, onClose, onOpenRelated }) {
     const pharmacy = entity === 'pharmacies';
     const memberships = (record.memberships ?? []).map((membership) => (membership.name ?? membership.pharmacy) +
         ' · ' + membership.role + (membership.is_active ? '' : ' (inactive)')).join('\n');
@@ -60,6 +61,7 @@ export function RecordDetails({ entity, record, onClose }) {
 
     return <Modal title={pharmacy ? record.name_en : record.name} onClose={onClose}>
         <Details values={values} />
+        {pharmacy && record.status === 'pending' && <PharmacyReviewSummary key={record.id} pharmacyId={record.id} onOpenRelated={onOpenRelated} />}
         <footer className="form-actions"><button className="button secondary" type="button" onClick={onClose}>Done</button></footer>
     </Modal>;
 }

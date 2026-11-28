@@ -7,8 +7,6 @@ use App\Enums\PharmacyStatus;
 use App\Enums\PlatformRole;
 use App\Enums\ReservationStatus;
 use App\Http\Controllers\Controller;
-use App\Models\InventoryBatch;
-use App\Models\InventoryItem;
 use App\Models\Membership;
 use App\Models\Pharmacy;
 use App\Models\Reservation;
@@ -46,8 +44,6 @@ class DashboardSummaryController extends Controller
             'customers_count' => User::where('platform_role', PlatformRole::Customer->value)->count(),
             'completed_reservations_count' => Reservation::where('status', ReservationStatus::Completed->value)->count(),
             'upcoming_reservations_count' => Reservation::query()->nearingDeadline()->count(),
-            'low_stock_count' => InventoryItem::query()->lowStock(today('Asia/Amman')->toDateString())->count(),
-            'expiring_batches_count' => InventoryBatch::query()->expiringSoon()->count(),
             'owners_count' => Membership::where('role', MembershipRole::Owner->value)
                 ->where('is_active', true)->distinct()->count('user_id'),
             'recent_activity' => Pharmacy::query()

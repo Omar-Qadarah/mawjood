@@ -17,7 +17,9 @@ class AdminInventoryTest extends TestCase
 {
     use RefreshDatabase;
 
-    private const ENDPOINT = '/api/v1/admin/inventory-items';
+    private int $pharmacyId;
+
+    private const ENDPOINT = '/api/v1/pharmacy-operations/inventory-items';
 
     public function test_admin_can_filter_by_pharmacy_and_search_for_a_batch_or_medicine(): void
     {
@@ -30,8 +32,9 @@ class AdminInventoryTest extends TestCase
         $medicineId = $demo->inventoryItems()->firstOrFail()->medicine_id;
         $other->inventoryItems()->create(['medicine_id' => $medicineId, 'selling_price' => '2.000', 'is_listed' => false]);
 
-        $this->getJson(self::ENDPOINT)->assertOk()->assertJsonPath('meta.total', 4);
-        $this->getJson(self::ENDPOINT.'?pharmacy_id='.$demo->id)->assertOk()
+        auth()->user()->pharmacies()->attach($other->id, ['role' => 'owner', 'is_active' => true]);
+        $this->getJson(self::ENDPOINT)->assertForbidden();
+        $this->getJson(self::ENDPOINT.'?pharmacy_id='.$this->pharmacyId)->assertOk()
             ->assertJsonPath('meta.total', 3)->assertJsonMissingPath('data.0.batches');
         $this->getJson(self::ENDPOINT.'?pharmacy_id='.$other->id)->assertOk()
             ->assertJsonPath('meta.total', 1)->assertJsonPath('data.0.available_quantity', 0)
@@ -42,11 +45,11 @@ class AdminInventoryTest extends TestCase
             $this->getJson(self::ENDPOINT.'?'.$query)->assertOk()->assertJsonPath('meta.total', 1)
                 ->assertJsonPath('data.0.medicine.name_en', 'Demo Paracetamol Tablets');
         }
-        $this->getJson(self::ENDPOINT.'?search=OTHER-INVENTORY&listing=listed')->assertOk()->assertJsonPath('meta.total', 0);
-        $this->getJson(self::ENDPOINT.'?search=OTHER-INVENTORY&listing=unlisted')->assertOk()->assertJsonPath('meta.total', 1);
-        $this->getJson(self::ENDPOINT.'?search=OTHER-INVENTORY')->assertOk()
+        $this->getJson(self::ENDPOINT.'?pharmacy_id='.$other->id.'&search=OTHER-INVENTORY&listing=listed')->assertOk()->assertJsonPath('meta.total', 0);
+        $this->getJson(self::ENDPOINT.'?pharmacy_id='.$other->id.'&search=OTHER-INVENTORY&listing=unlisted')->assertOk()->assertJsonPath('meta.total', 1);
+        $this->getJson(self::ENDPOINT.'?pharmacy_id='.$other->id.'&search=OTHER-INVENTORY')->assertOk()
             ->assertJsonPath('data.0.pharmacy.id', $other->id);
-        $this->getJson(self::ENDPOINT.'?pharmacy_id=999999')->assertUnprocessable()->assertJsonValidationErrors('pharmacy_id');
+        $this->getJson(self::ENDPOINT.'?pharmacy_id=999999')->assertForbidden();
     }
 
     public function test_available_quantity_agrees_between_list_and_details_and_excludes_ineligible_stock(): void
@@ -68,7 +71,7 @@ class AdminInventoryTest extends TestCase
             ]);
         }
 
-        $this->getJson(self::ENDPOINT.'?search=DEMO-PAR-01')->assertOk()
+        $this->getJson(self::ENDPOINT.'?pharmacy_id='.$this->pharmacyId.'&search=DEMO-PAR-01')->assertOk()
             ->assertJsonPath('data.0.available_quantity', 67);
         $detail = $this->getJson(self::ENDPOINT.'/'.$item->id)->assertOk()
             ->assertJsonPath('data.available_quantity', 67)->assertJsonCount(6, 'data.batches');
@@ -87,7 +90,7 @@ class AdminInventoryTest extends TestCase
         $this->getJson(self::ENDPOINT.'/999999')->assertNotFound();
     }
 
-    public function test_low_stock_filter_matches_the_dashboard_count_and_available_packages(): void
+    public function test_low_stock_filter_uses_available_packages(): void
     {
         $this->actingAs($this->seedInventory(), 'web');
         $low = InventoryItem::whereHas('medicine', fn ($query) => $query->where('name_en', 'Demo Paracetamol Suspension'))->sole();
@@ -97,17 +100,15 @@ class AdminInventoryTest extends TestCase
             'quantity_on_hand' => 20, 'status' => InventoryBatchStatus::Active,
         ]);
 
-        $summary = $this->getJson('/api/v1/admin/dashboard/summary')->assertOk();
-        $response = $this->getJson(self::ENDPOINT.'?stock=low')->assertOk()->assertJsonPath('meta.total', 2);
-        $this->assertSame($summary->json('low_stock_count'), $response->json('meta.total'));
+        $response = $this->getJson(self::ENDPOINT.'?pharmacy_id='.$this->pharmacyId.'&stock=low')->assertOk()->assertJsonPath('meta.total', 2);
         $this->assertEqualsCanonicalizing([0, 5], array_column($response->json('data'), 'available_quantity'));
 
-        $this->getJson(self::ENDPOINT.'?stock=low&search=Suspension')->assertOk()
+        $this->getJson(self::ENDPOINT.'?pharmacy_id='.$this->pharmacyId.'&stock=low&search=Suspension')->assertOk()
             ->assertJsonPath('meta.total', 1)->assertJsonPath('data.0.id', $low->id);
-        $this->getJson(self::ENDPOINT.'?stock=unknown')->assertUnprocessable()->assertJsonValidationErrors('stock');
+        $this->getJson(self::ENDPOINT.'?pharmacy_id='.$this->pharmacyId.'&stock=unknown')->assertUnprocessable()->assertJsonValidationErrors('stock');
     }
 
-    public function test_upcoming_batch_expiry_matches_the_dashboard_and_counts_batches_individually(): void
+    public function test_upcoming_batch_expiry_counts_batches_individually(): void
     {
         $this->actingAs($this->seedInventory(), 'web');
         $item = InventoryItem::query()->firstOrFail();
@@ -125,19 +126,17 @@ class AdminInventoryTest extends TestCase
             ]);
         }
 
-        $endpoint = '/api/v1/admin/inventory-batches/expiring';
-        $summary = $this->getJson('/api/v1/admin/dashboard/summary')->assertOk();
-        $response = $this->getJson($endpoint)->assertOk()->assertJsonPath('meta.total', 2);
-        $this->assertSame($summary->json('expiring_batches_count'), $response->json('meta.total'));
+        $endpoint = '/api/v1/pharmacy-operations/inventory-batches/expiring';
+        $response = $this->getJson($endpoint.'?pharmacy_id='.$this->pharmacyId)->assertOk()->assertJsonPath('meta.total', 2);
         $response->assertJsonPath('data.0.batch_no', 'EXP-TODAY')->assertJsonPath('data.0.item.id', $item->id)
             ->assertJsonPath('data.1.batch_no', 'EXP-DAY-30')->assertJsonPath('data.1.item.id', $item->id);
 
         $this->getJson($endpoint.'?'.http_build_query(['pharmacy_id' => $item->pharmacy_id, 'search' => 'EXP-DAY']))
             ->assertOk()->assertJsonPath('meta.total', 1)->assertJsonPath('data.0.batch_no', 'EXP-DAY-30');
-        $this->getJson($endpoint.'?listing=unlisted')->assertOk()->assertJsonPath('meta.total', 0);
+        $this->getJson($endpoint.'?pharmacy_id='.$this->pharmacyId.'&listing=unlisted')->assertOk()->assertJsonPath('meta.total', 0);
     }
 
-    public function test_admin_manages_inventory_listings_without_removing_stock_history(): void
+    public function test_owner_manages_inventory_listings_without_removing_stock_history(): void
     {
         $this->actingAs($this->seedInventory(), 'web');
         $existing = InventoryItem::query()->firstOrFail();
@@ -167,13 +166,33 @@ class AdminInventoryTest extends TestCase
         $customer = User::factory()->create(['platform_role' => PlatformRole::Customer, 'is_active' => true]);
         $this->actingAs($customer, 'web')->getJson(self::ENDPOINT)->assertForbidden();
         $this->getJson(self::ENDPOINT.'/'.InventoryItem::query()->value('id'))->assertForbidden();
-        $this->getJson('/api/v1/admin/inventory-batches/expiring')->assertForbidden();
+        $this->getJson('/api/v1/pharmacy-operations/inventory-batches/expiring')->assertForbidden();
+    }
+
+    public function test_platform_admin_and_unrelated_owner_cannot_read_internal_stock(): void
+    {
+        $this->seedInventory();
+        $item = InventoryItem::query()->firstOrFail();
+        $admin = User::where('platform_role', PlatformRole::Admin->value)->firstOrFail();
+        $this->actingAs($admin, 'web')->getJson(self::ENDPOINT.'/'.$item->id)->assertForbidden();
+        $this->getJson('/api/v1/admin/inventory-items')->assertNotFound();
+        $this->getJson('/api/v1/admin/dashboard/summary')->assertOk()
+            ->assertJsonMissingPath('low_stock_count')->assertJsonMissingPath('expiring_batches_count');
+
+        $otherPharmacy = Pharmacy::create([
+            'name_en' => 'Other pharmacy', 'name_ar' => 'صيدلية أخرى', 'license_no' => 'OTHER-OWNER',
+            'address' => 'Other address', 'city' => 'Amman', 'latitude' => 31.95, 'longitude' => 35.91,
+        ]);
+        $otherOwner = User::factory()->create(['platform_role' => PlatformRole::Customer, 'is_active' => true]);
+        $otherOwner->pharmacies()->attach($otherPharmacy->id, ['role' => 'owner', 'is_active' => true]);
+        $this->app['auth']->forgetGuards();
+        $this->actingAs($otherOwner, 'web')->getJson(self::ENDPOINT.'/'.$item->id.'?pharmacy_id='.$otherPharmacy->id)->assertForbidden();
     }
 
     public function test_guest_cannot_access_inventory(): void
     {
         $this->getJson(self::ENDPOINT)->assertUnauthorized();
-        $this->getJson('/api/v1/admin/inventory-batches/expiring')->assertUnauthorized();
+        $this->getJson('/api/v1/pharmacy-operations/inventory-batches/expiring')->assertUnauthorized();
     }
 
     private function seedInventory(): User
@@ -182,6 +201,10 @@ class AdminInventoryTest extends TestCase
         $this->seed(DemoMedicineSeeder::class);
         $this->seed(DemoInventorySeeder::class);
 
-        return $admin;
+        $this->pharmacyId = (int) InventoryItem::query()->value('pharmacy_id');
+        $owner = User::factory()->create(['platform_role' => PlatformRole::Customer, 'is_active' => true]);
+        $owner->pharmacies()->attach($this->pharmacyId, ['role' => 'owner', 'is_active' => true]);
+
+        return $owner;
     }
 }

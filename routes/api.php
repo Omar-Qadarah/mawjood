@@ -10,6 +10,7 @@ use App\Http\Controllers\Api\V1\Admin\DashboardSummaryController;
 use App\Http\Controllers\Api\V1\Admin\ExpiringInventoryBatchController;
 use App\Http\Controllers\Api\V1\Admin\InventoryController;
 use App\Http\Controllers\Api\V1\Admin\MedicineController;
+use App\Http\Controllers\Api\V1\Admin\PharmacyApplicationSummaryController;
 use App\Http\Controllers\Api\V1\Admin\PharmacyMapController;
 use App\Http\Controllers\Api\V1\Admin\StockMovementController;
 use App\Http\Controllers\Api\V1\Auth\LoginController;
@@ -21,6 +22,7 @@ use App\Http\Controllers\Api\V1\Medicine\SmartMedicineSearchController;
 use App\Http\Controllers\Api\V1\Pharmacy\PharmacyController;
 use App\Http\Controllers\Api\V1\Prescription\PrescriptionController;
 use App\Http\Controllers\Api\V1\Reservation\ReservationController;
+use App\Http\Middleware\EnsurePharmacyOwner;
 use Illuminate\Support\Facades\Route;
 
 Route::pattern('medicine', '[0-9]+');
@@ -55,11 +57,21 @@ Route::prefix('v1')
                 Route::patch('profile/password', AdminPasswordController::class)
                     ->middleware('throttle:10,1')->name('profile.password');
                 Route::get('pharmacy-sites', PharmacyMapController::class)->name('pharmacy-sites');
+                Route::get('pharmacies/{pharmacy}/review-summary', PharmacyApplicationSummaryController::class)
+                    ->name('pharmacies.review-summary');
                 Route::apiResource('pharmacies', AdminPharmacyController::class);
                 Route::apiResource('customers', CustomerController::class);
                 Route::apiResource('medicines', MedicineController::class);
                 Route::apiResource('active-ingredients', ActiveIngredientController::class)
                     ->parameters(['active-ingredients' => 'activeIngredient']);
+                Route::get('reservations', [AdminReservationController::class, 'index'])->name('reservations.index');
+                Route::get('dashboard/summary', DashboardSummaryController::class)
+                    ->name('dashboard.summary');
+            });
+        Route::middleware(['auth:sanctum', EnsurePharmacyOwner::class])
+            ->prefix('pharmacy-operations')
+            ->name('pharmacy-operations.')
+            ->group(function () {
                 Route::get('inventory-batches/expiring', ExpiringInventoryBatchController::class)->name('inventory-batches.expiring');
                 Route::apiResource('inventory-items', InventoryController::class)
                     ->parameters(['inventory-items' => 'inventoryItem']);
@@ -72,9 +84,8 @@ Route::prefix('v1')
                 Route::post('reservations/{reservation}/cancel', [AdminReservationController::class, 'cancel'])
                     ->whereNumber('reservation')->name('reservations.cancel');
                 Route::apiResource('reservations', AdminReservationController::class)->only(['index', 'show', 'update']);
-                Route::get('dashboard/summary', DashboardSummaryController::class)
-                    ->name('dashboard.summary');
             });
+
         // Authenticated routes
         Route::middleware('auth:sanctum')->group(function () {
 

@@ -20,7 +20,7 @@ class ReservationResource extends JsonResource
             'status_changed_at' => $this->status_changed_at,
             'response_deadline' => $this->response_deadline,
             'pickup_deadline' => $this->pickup_deadline,
-            'held_quantity' => (int) $this->held_quantity,
+            'held_quantity' => $this->whenHas('held_quantity', fn () => (int) $this->held_quantity),
             'rejection_reason' => $this->whenLoaded('items', fn () => $this->rejection_reason),
             'attention_reason' => $this->whenLoaded('items', fn () => $this->attention_reason),
             'items' => $this->whenLoaded('items', fn () => $this->items->map(fn ($item) => [

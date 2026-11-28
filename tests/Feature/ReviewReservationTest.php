@@ -18,7 +18,7 @@ class ReviewReservationTest extends TestCase
 {
     use RefreshDatabase;
 
-    private User $admin;
+    private User $owner;
 
     private User $customer;
 
@@ -29,16 +29,18 @@ class ReviewReservationTest extends TestCase
         parent::setUp();
 
         $this->travelTo(now()->startOfSecond());
-        $this->admin = User::factory()->create(['platform_role' => PlatformRole::Admin, 'is_active' => true]);
+        User::factory()->create(['platform_role' => PlatformRole::Admin, 'is_active' => true]);
+        $this->owner = User::factory()->create(['platform_role' => PlatformRole::Customer, 'is_active' => true]);
         $this->customer = User::factory()->create(['platform_role' => PlatformRole::Customer, 'is_active' => true]);
         $this->seed([DemoMedicineSeeder::class, DemoInventorySeeder::class]);
         $this->stock = InventoryItem::whereHas('medicine', fn ($query) => $query->where('name_en', 'Demo Paracetamol Tablets'))->sole();
+        $this->owner->pharmacies()->attach($this->stock->pharmacy_id, ['role' => 'owner', 'is_active' => true]);
     }
 
     public function test_confirmation_keeps_stock_held_until_pickup_deadline_then_expires(): void
     {
         $reservation = $this->reserve(50, 'confirm');
-        $this->actingAs($this->admin, 'web');
+        $this->actingAs($this->owner, 'web');
         $this->travel(5)->minutes();
         $pickup = now()->addHours(3);
 
@@ -47,10 +49,10 @@ class ReviewReservationTest extends TestCase
             ->assertJsonPath('data.status_changed_at', now()->toISOString())
             ->assertJsonPath('data.pickup_deadline', $pickup->toISOString())
             ->assertJsonPath('data.held_quantity', 50);
-        $this->assertSame($this->admin->id, $reservation->fresh()->handled_by);
+        $this->assertSame($this->owner->id, $reservation->fresh()->handled_by);
         $this->assertSame(50, (int) $this->stock->batches()->sum('quantity_held'));
         $this->assertDatabaseHas('audit_logs', [
-            'subject_id' => $reservation->id, 'actor_id' => $this->admin->id, 'action' => 'reservation.confirmed',
+            'subject_id' => $reservation->id, 'actor_id' => $this->owner->id, 'action' => 'reservation.confirmed',
         ]);
 
         $this->patchJson($this->endpoint($reservation), ['status' => 'rejected'])->assertConflict();
@@ -69,7 +71,7 @@ class ReviewReservationTest extends TestCase
     {
         $rejected = $this->reserve(50, 'reject');
         $other = $this->reserve(5, 'other');
-        $this->actingAs($this->admin, 'web');
+        $this->actingAs($this->owner, 'web');
 
         $this->patchJson($this->endpoint($rejected), ['status' => 'rejected', 'rejection_reason' => 'Cannot prepare order'])
             ->assertOk()->assertJsonPath('data.status', 'rejected')
@@ -78,7 +80,7 @@ class ReviewReservationTest extends TestCase
             ->assertJsonPath('data.pickup_deadline', null);
         $this->assertSame(['rejected'], $rejected->allocations()->pluck('release_reason')->unique()->values()->all());
         $this->assertSame(2, $rejected->allocations()->whereNotNull('released_at')->count());
-        $this->assertSame($this->admin->id, $rejected->fresh()->handled_by);
+        $this->assertSame($this->owner->id, $rejected->fresh()->handled_by);
         $this->assertSame(5, (int) $this->stock->batches()->sum('quantity_held'));
         $this->assertSame(72, (int) $this->stock->batches()->sum('quantity_on_hand'));
         $this->assertDatabaseCount('inventory_movements', 4);
@@ -88,7 +90,7 @@ class ReviewReservationTest extends TestCase
 
         $this->patchJson($this->endpoint($rejected), ['status' => 'rejected'])->assertConflict();
         $this->assertSame(1, DB::table('audit_logs')->where('action', 'reservation.rejected')
-            ->where('actor_id', $this->admin->id)->where('subject_id', $rejected->id)->count());
+            ->where('actor_id', $this->owner->id)->where('subject_id', $rejected->id)->count());
     }
 
     public function test_confirmation_replaces_a_quarantined_batch_when_stock_is_available(): void
@@ -96,7 +98,7 @@ class ReviewReservationTest extends TestCase
         $reservation = $this->reserve(5, 'replace');
         $original = $reservation->allocations()->sole();
         $original->batch->update(['status' => InventoryBatchStatus::Quarantined]);
-        $this->actingAs($this->admin, 'web');
+        $this->actingAs($this->owner, 'web');
 
         $this->patchJson($this->endpoint($reservation), ['status' => 'confirmed'])->assertOk()
             ->assertJsonPath('data.held_quantity', 5)
@@ -112,7 +114,7 @@ class ReviewReservationTest extends TestCase
         $reservation = $this->reserve(50, 'shortage');
         $original = $reservation->allocations()->oldest('batch_allocations.id')->firstOrFail();
         $original->batch->update(['status' => InventoryBatchStatus::Quarantined]);
-        $this->actingAs($this->admin, 'web');
+        $this->actingAs($this->owner, 'web');
 
         $this->patchJson($this->endpoint($reservation), ['status' => 'confirmed'])->assertConflict();
         $this->getJson($this->endpoint($reservation))->assertOk()
@@ -121,7 +123,7 @@ class ReviewReservationTest extends TestCase
             ->assertJsonPath('data.held_quantity', 24);
         $this->assertSame(0, $original->batch->fresh()->quantity_held);
 
-        $this->postJson('/api/v1/admin/inventory-items/'.$this->stock->id.'/receipts', [
+        $this->postJson('/api/v1/pharmacy-operations/inventory-items/'.$this->stock->id.'/receipts', [
             'batch_no' => 'DEMO-REPLACEMENT',
             'expiry_date' => today('Asia/Amman')->addMonth()->toDateString(),
             'quantity' => 30,
@@ -132,7 +134,7 @@ class ReviewReservationTest extends TestCase
             ->assertJsonPath('data.held_quantity', 50);
     }
 
-    public function test_only_admins_can_review_reservations(): void
+    public function test_non_members_cannot_review_reservations(): void
     {
         $endpoint = $this->endpoint($this->reserve(5, 'access'));
         $this->patchJson($endpoint, ['status' => 'confirmed'])->assertUnauthorized();
@@ -143,7 +145,7 @@ class ReviewReservationTest extends TestCase
     {
         $reservation = $this->reserve(5, 'late');
         $endpoint = $this->endpoint($reservation);
-        $this->actingAs($this->admin, 'web')->patchJson($endpoint, ['status' => 'completed'])
+        $this->actingAs($this->owner, 'web')->patchJson($endpoint, ['status' => 'completed'])
             ->assertUnprocessable()->assertJsonValidationErrors('status');
         $this->patchJson($endpoint, ['status' => 'confirmed', 'rejection_reason' => 'Unexpected reason'])
             ->assertUnprocessable()->assertJsonValidationErrors('rejection_reason');
@@ -166,6 +168,6 @@ class ReviewReservationTest extends TestCase
 
     private function endpoint(Reservation $reservation): string
     {
-        return '/api/v1/admin/reservations/'.$reservation->id;
+        return '/api/v1/pharmacy-operations/reservations/'.$reservation->id;
     }
 }

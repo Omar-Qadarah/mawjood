@@ -27,13 +27,6 @@ export function JordanMap({ sites }) {
     }
     const active = regionSites.filter((site) => site.status === 'active').length;
     const completed = regionSites.reduce((total, site) => total + site.completed_reservations, 0);
-    const sales = new Map();
-    regionSites.forEach((site) => site.sales_by_currency.forEach(({ currency, amount }) => {
-        sales.set(currency, (sales.get(currency) ?? 0) + Number(amount));
-    }));
-    const salesLabels = Array.from(sales, ([currency, amount]) =>
-        new Intl.NumberFormat('en-JO', { style: 'currency', currency }).format(amount));
-
     useEffect(() => {
         const map = L.map(host.current, { attributionControl: false, scrollWheelZoom: false, zoomSnap: 0.25, minZoom: 5 });
         const regions = L.geoJSON(boundaries, {
@@ -115,7 +108,6 @@ export function JordanMap({ sites }) {
                 <div className="map-insight-link"><dt><a href={directoryLink('reservations', 'completed')} aria-label={'Completed reservations in ' + scope}>
                     Completed reservations <Icon name="arrow" size={13} />
                 </a></dt><dd>{sites ? completed : '—'}</dd></div>
-                <div><dt>Collected sales value</dt><dd>{salesLabels.length ? salesLabels.join(' · ') : sites ? '0' : '—'}</dd></div>
             </dl>
         </div>
         <a className="map-credit" href="https://www.geoboundaries.org/api/current/gbOpen/JOR/ADM1/" target="_blank" rel="noreferrer">Boundaries: geoBoundaries / Wikimedia</a>

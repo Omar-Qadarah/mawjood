@@ -23,15 +23,20 @@ class AdminReservationController extends Controller
     {
         $filters = $request->validate([
             'status' => ['nullable', Rule::enum(ReservationStatus::class)],
+            'pharmacy_id' => ['nullable', 'integer', 'min:1', 'exists:pharmacies,id'],
             'governorate' => ['nullable', Rule::in(array_keys(config('jordan')))],
             'search' => ['nullable', 'string', 'max:150'],
             'deadline' => ['nullable', Rule::in(['upcoming'])],
         ]);
 
         $reservations = Reservation::query()
-            ->with('pharmacy:id,name_en')
-            ->withSum(['allocations as held_quantity' => fn (Builder $query) => $query
-                ->where('batch_allocations.status', BatchAllocationStatus::Held->value)], 'quantity');
+            ->with('pharmacy:id,name_en');
+
+        if ($request->routeIs('api.v1.pharmacy-operations.*')) {
+            $reservations->where('pharmacy_id', $filters['pharmacy_id'])
+                ->withSum(['allocations as held_quantity' => fn (Builder $query) => $query
+                    ->where('batch_allocations.status', BatchAllocationStatus::Held->value)], 'quantity');
+        }
 
         if (isset($filters['status'])) {
             $reservations->where('status', $filters['status']);

@@ -16,12 +16,12 @@ class AdminStockMovementTest extends TestCase
 {
     use RefreshDatabase;
 
-    private const ENDPOINT = '/api/v1/admin/inventory-items/';
+    private const ENDPOINT = '/api/v1/pharmacy-operations/inventory-items/';
 
     public function test_receiving_opens_a_batch_and_retries_do_not_duplicate_the_receipt(): void
     {
-        [$admin, $item] = $this->stock();
-        $this->actingAs($admin, 'web');
+        [$owner, $item] = $this->stock();
+        $this->actingAs($owner, 'web');
         $base = self::ENDPOINT.$item->id;
         $payload = [
             'batch_no' => 'TEST-RECEIPT',
@@ -33,7 +33,7 @@ class AdminStockMovementTest extends TestCase
 
         $receipt = $this->postJson($base.'/receipts', $payload)->assertCreated()
             ->assertJsonPath('data.type', 'receipt')->assertJsonPath('data.quantity', 10)
-            ->assertJsonPath('data.created_by', $admin->id)->json('data.id');
+            ->assertJsonPath('data.created_by', $owner->id)->json('data.id');
         $this->postJson($base.'/receipts', $payload)->assertOk()->assertJsonPath('data.id', $receipt);
         $this->postJson($base.'/receipts', array_replace($payload, ['quantity' => 3]))->assertConflict();
 
@@ -57,8 +57,8 @@ class AdminStockMovementTest extends TestCase
 
     public function test_adjustment_preserves_holds_and_is_scoped_to_the_inventory_item(): void
     {
-        [$admin, $item] = $this->stock();
-        $this->actingAs($admin, 'web');
+        [$owner, $item] = $this->stock();
+        $this->actingAs($owner, 'web');
         $batch = $item->batches()->where('batch_no', 'DEMO-PAR-01')->sole();
         $batch->update(['quantity_held' => 12]);
         $url = self::ENDPOINT.$item->id.'/batches/'.$batch->id.'/adjustments';
@@ -101,6 +101,9 @@ class AdminStockMovementTest extends TestCase
 
         $item = InventoryItem::whereHas('medicine', fn ($query) => $query->where('name_en', 'Demo Paracetamol Tablets'))->sole();
 
-        return [$admin, $item];
+        $owner = User::factory()->create(['platform_role' => PlatformRole::Customer, 'is_active' => true]);
+        $owner->pharmacies()->attach($item->pharmacy_id, ['role' => 'owner', 'is_active' => true]);
+
+        return [$owner, $item];
     }
 }

@@ -5,7 +5,6 @@ import { Brand, Field, Icon, Notice, Status } from './ui';
 import { Directory, RecordDetails } from './Directory';
 import { JordanMap } from './JordanMap';
 import { MedicineDetails, Medicines } from './Medicines';
-import { Inventory } from './Inventory';
 import { Reservations } from './Reservations';
 import { RegistrationTrend } from './RegistrationTrend';
 import { ProfileSettings } from './ProfileSettings';
@@ -132,14 +131,6 @@ function Overview({ onDetails }) {
                         <div><strong>Reservations nearing deadlines</strong><p>Due within 60 minutes</p></div>
                         <span className="attention-count">{summary?.upcoming_reservations_count ?? '—'}</span><Icon name="arrow" size={16} />
                     </a>
-                    <a href="#inventory?stock=low"><Icon name="inventory" />
-                        <div><strong>Low-stock items</strong><p>5 or fewer packages available</p></div>
-                        <span className="attention-count">{summary?.low_stock_count ?? '—'}</span><Icon name="arrow" size={16} />
-                    </a>
-                    <a href="#inventory?expiry=soon"><Icon name="expiry" />
-                        <div><strong>Expiring batches</strong><p>Within 30 days</p></div>
-                        <span className="attention-count">{summary?.expiring_batches_count ?? '—'}</span><Icon name="arrow" size={16} />
-                    </a>
                 </div>
             </section>
             <section className="panel activity-panel"><header className="panel-header"><div><h2>Recent updates</h2><p>Latest pharmacy changes</p></div></header>
@@ -208,11 +199,6 @@ function App() {
         content = <Overview onDetails={openDetails} />;
     } else if (tab === 'medicines') {
         content = <Medicines />;
-    } else if (tab === 'inventory') {
-        const stock = params.get('stock') === 'low' ? 'low' : '';
-        const expiring = params.get('expiry') === 'soon';
-        content = <Inventory key={expiring ? 'expiring' : stock} initialStock={expiring ? '' : stock}
-            expiring={expiring} onClearRoute={clearRouteFilters} />;
     } else if (tab === 'reservations') {
         const governorate = params.get('governorate') ?? '';
         const deadline = params.get('deadline') === 'upcoming' ? 'upcoming' : '';
@@ -236,7 +222,7 @@ function App() {
         </main>
         {detail && (detail.entity === 'medicines'
             ? <MedicineDetails summary={detail.record} onClose={() => setDetail(null)} />
-            : <RecordDetails {...detail} onClose={() => setDetail(null)} />)}
+            : <RecordDetails {...detail} onClose={() => setDetail(null)} onOpenRelated={id => openDetails('pharmacies', id)} />)}
     </div>;
 }
 
