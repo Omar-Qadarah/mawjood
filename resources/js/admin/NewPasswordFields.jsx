@@ -34,7 +34,7 @@ export function NewPasswordFields({ setup, passwordLabel = 'Password', confirmat
         <PasswordField label={passwordLabel} name="password" autoComplete="new-password"
             aria-describedby={id + '-checks'} required value={password} onChange={(event) => setPassword(event.target.value)} />
         <PasswordField label={confirmationLabel} name="password_confirmation" autoComplete="new-password"
-            aria-describedby={id + '-match'} aria-invalid={mismatch} required value={confirmation}
+            aria-describedby={confirmation ? id + '-match' : undefined} aria-invalid={mismatch} required value={confirmation}
             onChange={(event) => setConfirmation(event.target.value)} />
         <ul className="password-checks" id={id + '-checks'} aria-label="Password requirements">
             {requirements.map(([label, met]) => <li key={label} data-met={met}>
@@ -42,9 +42,9 @@ export function NewPasswordFields({ setup, passwordLabel = 'Password', confirmat
                 {label}<span className="sr-only">{met ? ' — met' : ' — not met'}</span>
             </li>)}
         </ul>
-        <p className="password-match" data-met={matches} data-mismatch={mismatch} id={id + '-match'} role="status">
+        {confirmation && <p className="password-match" data-met={matches} data-mismatch={mismatch} id={id + '-match'} role="status">
             {matches && <Icon name="check" size={14} />}
-            {confirmation === '' ? 'Re-enter your password.' : matches ? 'Passwords match.' : 'Passwords do not match.'}
-        </p>
+            {matches ? 'Passwords match.' : 'Passwords do not match.'}
+        </p>}
     </>;
 }

@@ -18,6 +18,8 @@ use App\Http\Controllers\Api\V1\Auth\LoginController;
 use App\Http\Controllers\Api\V1\Auth\LogoutController;
 use App\Http\Controllers\Api\V1\Auth\MeController;
 use App\Http\Controllers\Api\V1\Auth\RegisterController;
+use App\Http\Controllers\Api\V1\Auth\ResetAdminPasswordController;
+use App\Http\Controllers\Api\V1\Auth\SendAdminPasswordResetController;
 use App\Http\Controllers\Api\V1\Medicine\MedicineSearchController;
 use App\Http\Controllers\Api\V1\Medicine\SmartMedicineSearchController;
 use App\Http\Controllers\Api\V1\Pharmacy\PharmacyController;
@@ -42,6 +44,14 @@ Route::prefix('v1')
         Route::post('auth/login', LoginController::class)
             ->middleware('throttle:login')
             ->name('auth.login');
+
+        Route::post('auth/admin/forgot-password', SendAdminPasswordResetController::class)
+            ->middleware('throttle:6,1,admin-reset-link')
+            ->name('auth.admin.forgot-password');
+
+        Route::post('auth/admin/reset-password', ResetAdminPasswordController::class)
+            ->middleware('throttle:10,1,admin-reset-complete')
+            ->name('auth.admin.reset-password');
 
         Route::get('medicines/search', MedicineSearchController::class)->name('medicines.search');
 

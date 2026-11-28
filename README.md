@@ -20,6 +20,8 @@ Mawjood connects customers with pharmacies that have medicine in stock. This Lar
 
 Customer signup is available at `/signup`. API clients calling `POST /api/v1/auth/register` must send `password_confirmation` matching `password`.
 
+Admin password reset links expire after 10 minutes. Set `APP_URL` to your browser-facing Mawjood URL. Configure a mail transport to deliver reset links to an inbox. With the local `MAIL_MAILER=log` setting, use Laravel's log to find the test email.
+
 On XAMPP, use `C:\xampp\php\php.exe` in place of `php` if PHP is missing from your PATH.
 
 ## Dashboard modules

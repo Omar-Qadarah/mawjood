@@ -46,7 +46,10 @@ function Login({ onLogin, message }) {
         <form onSubmit={submit}>
             <Field label="Email"><input type="email" name="email" autoComplete="username" required /></Field>
             <PasswordField label="Password" name="password" autoComplete="current-password" required />
-            <label className="checkbox"><input type="checkbox" name="remember" />Remember me</label>
+            <div className="login-options">
+                <label className="checkbox"><input type="checkbox" name="remember" />Remember me</label>
+                <a href="/admin/forgot-password">Forgot password?</a>
+            </div>
             <button className="button primary" disabled={busy}>{busy ? 'Signing in…' : 'Sign in'}<Icon name="arrow" /></button>
         </form>
     </AuthLayout>;

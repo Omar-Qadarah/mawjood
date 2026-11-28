@@ -21,4 +21,16 @@ class AccountPassword
             },
         ];
     }
+
+    public static function adminRules(): array
+    {
+        return [
+            ...self::rules(),
+            static function (string $attribute, mixed $value, Closure $fail): void {
+                if (is_string($value) && strlen($value) > 72) {
+                    $fail('The new password must be no longer than 72 bytes.');
+                }
+            },
+        ];
+    }
 }

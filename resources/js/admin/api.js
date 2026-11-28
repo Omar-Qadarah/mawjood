@@ -1,4 +1,4 @@
-const settings = document.querySelector('#mawjood-admin, #mawjood-signup').dataset;
+const settings = document.querySelector('#mawjood-admin, #mawjood-signup, #mawjood-admin-recovery').dataset;
 
 export const places = JSON.parse(settings.places ?? '{}');
 
@@ -30,7 +30,7 @@ async function submitAuthForm(path, body) {
     const response = await fetch(settings.csrfUrl, { credentials: 'same-origin' });
     if (!response.ok) throw new Error('Could not start the sign-in session.');
 
-    return (await api(path, { method: 'POST', body })).data;
+    return (await api(path, { method: 'POST', body }))?.data;
 }
 
 export function signIn(credentials) {
@@ -39,4 +39,12 @@ export function signIn(credentials) {
 
 export function signUp(details) {
     return submitAuthForm('/auth/register', details);
+}
+
+export function requestAdminPasswordReset(email) {
+    return submitAuthForm('/auth/admin/forgot-password', { email });
+}
+
+export function resetAdminPassword(details) {
+    return submitAuthForm('/auth/admin/reset-password', details);
 }

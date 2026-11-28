@@ -1010,6 +1010,18 @@ td .row-actions {
 .login-box .button {
     justify-content: space-between;
 }
+.login-options {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+.login-options a {
+    color: var(--green);
+    font-size: 0.84rem;
+    font-weight: 650;
+}
 .login-box .login-switch {
     justify-content: center;
     width: 100%;
