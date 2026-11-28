@@ -7,10 +7,11 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasManyThrough;
-use Illuminate\Support\Facades\DB;
 
 class InventoryItem extends Model
 {
+    private const LOW_STOCK_THRESHOLD = 5;
+
     protected $fillable = ['pharmacy_id', 'medicine_id', 'selling_price', 'is_listed', 'stock_verified_at'];
 
     protected function casts(): array
@@ -37,10 +38,19 @@ class InventoryItem extends Model
 
     public function scopeWithAvailableQuantity(Builder $query, string $date): Builder
     {
-        return $query->withSum(
-            ['batches as available_quantity' => fn (Builder $batch) => $batch->eligibleOn($date)],
-            DB::raw('quantity_on_hand - quantity_held'),
-        );
+        return $query->addSelect(['available_quantity' => self::availableQuantityQuery($date)]);
+    }
+
+    public function scopeLowStock(Builder $query, string $date): Builder
+    {
+        return $query->where(self::availableQuantityQuery($date), '<=', self::LOW_STOCK_THRESHOLD);
+    }
+
+    private static function availableQuantityQuery(string $date): Builder
+    {
+        return InventoryBatch::query()->eligibleOn($date)
+            ->whereColumn('inventory_batches.inventory_item_id', 'inventory_items.id')
+            ->selectRaw('COALESCE(SUM(quantity_on_hand - quantity_held), 0)');
     }
 
     public function pharmacy(): BelongsTo

@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { api } from './api';
+import { ExpiringBatchesTable } from './ExpiringBatchesTable';
 import { InventoryListingForm } from './InventoryListingForm';
 import { StockMovementForm } from './StockMovementForm';
 import { useTableLoader } from './useTableLoader';
@@ -7,6 +8,7 @@ import { TableFilters } from './TableFilters';
 import { Details, Field, Modal, Notice, Status } from './ui';
 
 const endpoint = '/admin/inventory-items';
+const expiringEndpoint = '/admin/inventory-batches/expiring';
 
 function StockDetails({ item, onClose, onChanged }) {
     const [data, setData] = useState(null);
@@ -80,10 +82,10 @@ function StockDetails({ item, onClose, onChanged }) {
     </Modal>;
 }
 
-export function Inventory() {
+export function Inventory({ initialStock = '', expiring = false, onClearRoute }) {
     const [pharmacies, setPharmacies] = useState(null);
     const [pharmacyError, setPharmacyError] = useState('');
-    const [filter, setFilter] = useState({ pharmacy: '', search: '', listing: '', page: 1 });
+    const [filter, setFilter] = useState({ pharmacy: '', search: '', listing: '', stock: initialStock, page: 1 });
     const [result, setResult] = useState(null);
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(true);
@@ -107,10 +109,11 @@ export function Inventory() {
             const params = new URLSearchParams({ page: filter.page });
             if (filter.pharmacy) params.set('pharmacy_id', filter.pharmacy);
             if (filter.listing) params.set('listing', filter.listing);
+            if (filter.stock) params.set('stock', filter.stock);
             if (filter.search.trim()) params.set('search', filter.search.trim());
 
             try {
-                const response = await api(endpoint + '?' + params);
+                const response = await api((expiring ? expiringEndpoint : endpoint) + '?' + params);
                 if (current) setResult(response);
             } catch (exception) {
                 if (current) setError(exception.message);
@@ -119,7 +122,7 @@ export function Inventory() {
             }
         });
         return () => { current = false; cancel?.(); };
-    }, [loadTable, filter, revision]);
+    }, [expiring, loadTable, filter, revision]);
 
     function changeFilter(changes) {
         setLoading(true);
@@ -128,20 +131,24 @@ export function Inventory() {
     }
 
     const rows = result?.data ?? [];
-    let emptyText = 'No stock listings match these filters.';
+    let emptyText = expiring ? 'No expiring batches match these filters.' : 'No stock listings match these filters.';
     if (loading) emptyText = 'Loading inventory…';
     else if (error) emptyText = 'Inventory results are unavailable.';
 
     return <section aria-labelledby="inventory-heading">
         <div className="page-heading"><div><h1 id="inventory-heading">Inventory</h1>
-            <p>Browse pharmacy stock. Availability counts active, unexpired batches after held quantities.</p></div>
-            <button className="button primary" type="button" disabled={!pharmacies?.length} onClick={() => setListingForm({})}>Add stock listing</button>
+            <p>{expiring ? 'Batches with stock on hand expiring within 30 days.' : 'Browse pharmacy stock. Availability counts active, unexpired batches after held quantities.'}</p></div>
+            {expiring ? <a className="button secondary" href="#inventory">All listings</a>
+                : <button className="button primary" type="button" disabled={!pharmacies?.length} onClick={() => setListingForm({})}>Add stock listing</button>}
         </div>
         <Notice>{notice}</Notice>
         <Notice error>{error}</Notice><Notice error>{pharmacyError}</Notice>
         <div className="panel directory" aria-busy={loading}>
             <TableFilters label="Search inventory" search={filter.search} onSearch={(search) => changeFilter({ search })}
-                onClear={() => changeFilter({ search: '', pharmacy: '', listing: '' })}
+                onClear={() => {
+                    changeFilter({ search: '', pharmacy: '', listing: '', stock: '' });
+                    onClearRoute();
+                }}
                 placeholder="Pharmacy, medicine, or batch number">
                 <Field label="Pharmacy"><select value={filter.pharmacy} disabled={!pharmacies}
                     onChange={(event) => changeFilter({ pharmacy: event.target.value })}>
@@ -155,8 +162,13 @@ export function Inventory() {
                     <option value="listed">Listed</option>
                     <option value="unlisted">Unlisted</option>
                 </select></Field>
+                {!expiring && <Field label="Stock level"><select value={filter.stock} onChange={event => changeFilter({ stock: event.target.value })}>
+                    <option value="">All stock levels</option>
+                    <option value="low">Low stock</option>
+                </select></Field>}
             </TableFilters>
-            <div className="table-scroll"><table>
+            {expiring ? <ExpiringBatchesTable batches={loading || error ? [] : rows} emptyText={emptyText} onDetails={setSelected} />
+                : <div className="table-scroll"><table>
                 <thead><tr>{['Pharmacy', 'Medicine', 'Selling price', 'Listing', 'Available', 'Batches', 'Details'].map((heading) =>
                     <th key={heading} scope="col">{heading}</th>)}</tr></thead>
                 <tbody>{!loading && !error && rows.length ? rows.map((item) => <tr key={item.id}>
@@ -171,10 +183,10 @@ export function Inventory() {
                             aria-label={'Edit listing for ' + item.medicine.name_en + ' at ' + item.pharmacy.name_en}>Edit</button>
                     </div></td>
                 </tr>) : <tr><td className="empty" colSpan="7">{emptyText}</td></tr>}</tbody>
-            </table></div>
+            </table></div>}
             {!loading && !error && result?.meta && <footer className="pagination">
                 <button className="button secondary small" onClick={() => changeFilter({ page: filter.page - 1 })} disabled={filter.page <= 1}>Previous</button>
-                <span>Page {result.meta.current_page} of {result.meta.last_page} · {result.meta.total} {result.meta.total === 1 ? 'listing' : 'listings'}</span>
+                <span>Page {result.meta.current_page} of {result.meta.last_page} · {result.meta.total} {expiring ? (result.meta.total === 1 ? 'batch' : 'batches') : (result.meta.total === 1 ? 'listing' : 'listings')}</span>
                 <button className="button secondary small" onClick={() => changeFilter({ page: filter.page + 1 })} disabled={filter.page >= result.meta.last_page}>Next</button>
             </footer>}
         </div>

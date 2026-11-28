@@ -74,26 +74,12 @@ function Overview({ onDetails }) {
     const statuses = ['active', 'pending', 'suspended'];
     const total = summary?.counts.total ?? 0;
     const activeShare = total ? (summary.counts.active / total) * 100 : 0;
-    const pendingEnd = total ? activeShare + (summary.counts.pending / total) * 100 : 0;
 
     return <section>
         <div className="page-heading"><div><h1>Dashboard</h1><p>Pharmacy network and customer activity</p></div>
             <a className="button secondary" href="#pharmacies">Manage pharmacies <Icon name="arrow" /></a></div>
         <Notice error>{error}</Notice>
         <div className="overview-grid">
-            <section className="panel attention-panel" aria-labelledby="attention-heading">
-                <header className="panel-header"><h2 id="attention-heading">Needs attention</h2></header>
-                <div className="attention-links">
-                    <a href="#pharmacies?status=pending"><Icon name="pharmacies" />
-                        <div><strong>Pending pharmacy approvals</strong></div>
-                        <span className="attention-count">{summary?.counts.pending ?? '—'}</span><Icon name="arrow" size={16} />
-                    </a>
-                    <a href="#reservations?deadline=upcoming"><Icon name="reservations" />
-                        <div><strong>Reservations nearing deadlines</strong><p>Due within 60 minutes</p></div>
-                        <span className="attention-count">{summary?.upcoming_reservations_count ?? '—'}</span><Icon name="arrow" size={16} />
-                    </a>
-                </div>
-            </section>
             <div className="overview-main">
             <div className="stats-grid">{stats.map(([title, value, icon]) => <a className="stat stat-link" key={title} href={icon === 'reservations' ? '#reservations?status=completed' : '#' + icon}>
                 <span className="stat-icon"><Icon name={icon} /></span><div><p>{title}</p><strong>{value ?? '—'}</strong></div>
@@ -110,18 +96,51 @@ function Overview({ onDetails }) {
                     </tr>) : <tr><td className="empty" colSpan="3">{summary ? 'No pharmacies have been added yet.' : 'Loading pharmacies…'}</td></tr>}</tbody>
                 </table></div>
             </section>
-            <section className="panel status-panel"><header className="panel-header"><div><h2>Pharmacy status</h2><p>Listings by review status</p></div></header>
+            <section className="panel status-panel" aria-labelledby="pharmacy-status-heading">
+                <header className="panel-header"><h2 id="pharmacy-status-heading">Pharmacy status</h2></header>
                 <div className="status-layout">
-                    <div className="status-ring" role="img" aria-label={Math.round(activeShare) + '% active'}
-                        style={{ '--active-share': activeShare + '%', '--pending-end': pendingEnd + '%' }}>
-                        <span><strong>{summary ? Math.round(activeShare) + '%' : '—'}</strong><small>Active</small></span>
+                    <div className="status-overview">
+                        <div className="status-totals">
+                            <div><strong>{summary ? total : '—'}</strong><span>Total pharmacies</span></div>
+                            <div><strong>{summary && total ? Math.round(activeShare) + '%' : '—'}</strong><span>Active share</span></div>
+                        </div>
+                        <div className="status-distribution" aria-hidden="true">
+                            {statuses.map(status => <span key={status} className={'status-color-' + status}
+                                style={{ flexGrow: summary?.counts[status] ?? 0 }} />)}
+                        </div>
                     </div>
-                    <div className="status-chart">{statuses.map((status) => {
-                    const value = summary?.counts[status] ?? 0;
-                    return <a className="chart-row" key={status} href={'#pharmacies?status=' + status}><span>{status}</span><div className="bar-track">
-                        <div className={'bar bar-' + status} style={{ width: (total ? (value / total) * 100 : 0) + '%' }} />
-                    </div><strong>{summary ? value : '—'}</strong></a>;
-                })}</div></div>
+                    <ul className="status-breakdown">
+                        {statuses.map(status => <li key={status}>
+                            <a href={'#pharmacies?status=' + status}>
+                                <span className={'status-dot status-color-' + status} aria-hidden="true" />
+                                <span className="status-name">{status}</span>
+                                <strong>{summary ? summary.counts[status] : '—'}</strong>
+                                <Icon name="arrow" size={16} />
+                            </a>
+                        </li>)}
+                    </ul>
+                </div>
+            </section>
+            <section className="panel attention-panel" aria-labelledby="attention-heading">
+                <header className="panel-header"><h2 id="attention-heading">Needs attention</h2></header>
+                <div className="attention-links">
+                    <a href="#pharmacies?status=pending"><Icon name="pharmacies" />
+                        <div><strong>Pending pharmacy approvals</strong></div>
+                        <span className="attention-count">{summary?.counts.pending ?? '—'}</span><Icon name="arrow" size={16} />
+                    </a>
+                    <a href="#reservations?deadline=upcoming"><Icon name="reservations" />
+                        <div><strong>Reservations nearing deadlines</strong><p>Due within 60 minutes</p></div>
+                        <span className="attention-count">{summary?.upcoming_reservations_count ?? '—'}</span><Icon name="arrow" size={16} />
+                    </a>
+                    <a href="#inventory?stock=low"><Icon name="inventory" />
+                        <div><strong>Low-stock items</strong><p>5 or fewer packages available</p></div>
+                        <span className="attention-count">{summary?.low_stock_count ?? '—'}</span><Icon name="arrow" size={16} />
+                    </a>
+                    <a href="#inventory?expiry=soon"><Icon name="expiry" />
+                        <div><strong>Expiring batches</strong><p>Within 30 days</p></div>
+                        <span className="attention-count">{summary?.expiring_batches_count ?? '—'}</span><Icon name="arrow" size={16} />
+                    </a>
+                </div>
             </section>
             <section className="panel activity-panel"><header className="panel-header"><div><h2>Recent updates</h2><p>Latest pharmacy changes</p></div></header>
                 {summary?.recent_activity.length ? <ul className="activity-list">{summary.recent_activity.map((pharmacy) => <li key={pharmacy.id}>
@@ -190,7 +209,10 @@ function App() {
     } else if (tab === 'medicines') {
         content = <Medicines />;
     } else if (tab === 'inventory') {
-        content = <Inventory />;
+        const stock = params.get('stock') === 'low' ? 'low' : '';
+        const expiring = params.get('expiry') === 'soon';
+        content = <Inventory key={expiring ? 'expiring' : stock} initialStock={expiring ? '' : stock}
+            expiring={expiring} onClearRoute={clearRouteFilters} />;
     } else if (tab === 'reservations') {
         const governorate = params.get('governorate') ?? '';
         const deadline = params.get('deadline') === 'upcoming' ? 'upcoming' : '';

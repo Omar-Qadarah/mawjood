@@ -30,6 +30,16 @@ class InventoryBatch extends Model
             ->where('expiry_date', '>=', $date);
     }
 
+    public function scopeExpiringSoon(Builder $query): Builder
+    {
+        $today = today('Asia/Amman');
+
+        return $query->where('quantity_on_hand', '>', 0)->whereBetween('expiry_date', [
+            $today->toDateString(),
+            $today->copy()->addDays(30)->toDateString(),
+        ]);
+    }
+
     public function availableQuantityOn(string $date): int
     {
         if ($this->status !== InventoryBatchStatus::Active || $this->expiry_date->toDateString() < $date) {

@@ -270,52 +270,6 @@ p {
     margin-top: 3px;
     font-size: 0.76rem;
 }
-.status-chart {
-    padding: 2px 12px 12px;
-    display: grid;
-    gap: 8px;
-}
-.chart-row {
-    display: grid;
-    grid-template-columns: 78px 1fr 32px;
-    gap: 9px;
-    align-items: center;
-    font-size: 0.84rem;
-}
-a.chart-row {
-    color: inherit;
-    text-decoration: none;
-    border-radius: 5px;
-}
-a.chart-row:hover {
-    background: var(--accent-soft);
-}
-.chart-row span {
-    text-transform: capitalize;
-    color: var(--muted);
-}
-.chart-row strong {
-    text-align: right;
-}
-.bar-track {
-    height: 8px;
-    background: #edf3f0;
-    border-radius: 12px;
-    overflow: hidden;
-}
-.bar {
-    height: 100%;
-    border-radius: inherit;
-}
-.bar-active {
-    background: #3e9b86;
-}
-.bar-pending {
-    background: #c59e4c;
-}
-.bar-suspended {
-    background: #c97e80;
-}
 .jordan-map {
     height: clamp(220px, 35vh, 275px);
     width: 100%;
@@ -977,9 +931,6 @@ td strong,
 .overview-grid .panel {
     border-radius: 14px;
 }
-.attention-panel {
-    grid-column: 1 / -1;
-}
 .attention-links {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -1022,15 +973,9 @@ td strong,
         grid-template-columns: minmax(0, 1fr);
     }
 }
-.overview-grid > .activity-panel {
-    grid-column: 1 / -1;
-}
 .overview-grid > .status-panel {
     display: grid;
     grid-template-rows: auto 1fr;
-}
-.overview-grid > .status-panel .status-layout {
-    align-self: center;
 }
 .overview-grid .trend-panel {
     display: flex;
@@ -1040,13 +985,6 @@ td strong,
     flex: 1;
     display: flex;
     flex-direction: column;
-}
-@media (min-width: 901px) {
-    .activity-panel .activity-list {
-        display: grid;
-        grid-template-columns: repeat(3, minmax(0, 1fr));
-        gap: 0 14px;
-    }
 }
 .stat {
     background: #e5f1df;
@@ -1177,37 +1115,86 @@ td strong,
 }
 .status-layout {
     display: grid;
-    grid-template-columns: 78px minmax(0, 1fr);
+    grid-template-rows: auto 1fr;
     gap: 10px;
-    align-items: center;
     padding: 0 12px 12px;
 }
-.status-ring {
-    width: 74px;
-    aspect-ratio: 1;
-    border-radius: 50%;
-    padding: 6px;
-    background: conic-gradient(
-        #378977 0 var(--active-share),
-        #b88b36 var(--active-share) var(--pending-end),
-        #dec9dd var(--pending-end) 100%
-    );
-}
-.status-ring span {
-    width: 100%;
-    height: 100%;
+.status-overview {
     display: grid;
-    place-content: center;
-    text-align: center;
-    border-radius: 50%;
-    background: white;
+    gap: 10px;
+    padding: 10px 12px;
+    border-radius: 9px;
+    background: #f2f7f5;
 }
-.status-ring small {
-    font-size: 0.65rem;
+.status-totals {
+    display: flex;
+    justify-content: space-between;
+    gap: 8px;
+}
+.status-totals > div {
+    display: grid;
+    gap: 3px;
+}
+.status-totals > div:last-child {
+    text-align: end;
+}
+.status-totals strong {
+    font-size: clamp(1.45rem, 2.5vw, 2rem);
+    line-height: 1.1;
+    font-variant-numeric: tabular-nums;
+}
+.status-totals span {
     color: var(--muted);
+    font-size: 0.76rem;
 }
-.status-layout .status-chart {
+.status-distribution {
+    display: flex;
+    height: 10px;
+    overflow: hidden;
+    background: #e3ebe7;
+    border-radius: 999px;
+}
+.status-distribution span {
+    flex-basis: 0;
+}
+.status-color-active { background: #3e9b86; }
+.status-color-pending { background: #c59e4c; }
+.status-color-suspended { background: #c97e80; }
+.status-breakdown {
+    display: grid;
+    grid-template-rows: repeat(3, minmax(38px, 1fr));
+    margin: 0;
     padding: 0;
+    list-style: none;
+}
+.status-breakdown li + li {
+    border-top: 1px solid var(--line);
+}
+.status-breakdown a {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto auto;
+    align-items: center;
+    gap: 9px;
+    height: 100%;
+    padding: 5px 8px;
+    border-radius: 6px;
+    color: inherit;
+    font-size: 0.84rem;
+    text-decoration: none;
+}
+.status-breakdown a:hover {
+    background: var(--accent-soft);
+}
+.status-dot {
+    width: 9px;
+    height: 9px;
+    border-radius: 50%;
+}
+.status-name {
+    text-transform: capitalize;
+}
+.status-breakdown svg {
+    color: var(--accent);
 }
 .jordan-map {
     background: #f5faf8;

@@ -22,6 +22,7 @@ class InventoryController extends Controller
             'pharmacy_id' => ['nullable', 'integer', 'min:1', 'exists:pharmacies,id'],
             'search' => ['nullable', 'string', 'max:150'],
             'listing' => ['nullable', 'in:listed,unlisted'],
+            'stock' => ['nullable', 'in:low'],
         ]);
 
         $date = today('Asia/Amman')->toDateString();
@@ -36,6 +37,10 @@ class InventoryController extends Controller
 
         if (isset($filters['listing'])) {
             $items->where('is_listed', $filters['listing'] === 'listed');
+        }
+
+        if (isset($filters['stock'])) {
+            $items->lowStock($date);
         }
 
         if (isset($filters['search'])) {

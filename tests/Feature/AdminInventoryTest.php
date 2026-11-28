@@ -87,6 +87,56 @@ class AdminInventoryTest extends TestCase
         $this->getJson(self::ENDPOINT.'/999999')->assertNotFound();
     }
 
+    public function test_low_stock_filter_matches_the_dashboard_count_and_available_packages(): void
+    {
+        $this->actingAs($this->seedInventory(), 'web');
+        $low = InventoryItem::whereHas('medicine', fn ($query) => $query->where('name_en', 'Demo Paracetamol Suspension'))->sole();
+        $low->batches()->sole()->update(['quantity_held' => 11]);
+        $low->batches()->create([
+            'batch_no' => 'LOW-STOCK-EXPIRED', 'expiry_date' => today('Asia/Amman')->subDay()->toDateString(),
+            'quantity_on_hand' => 20, 'status' => InventoryBatchStatus::Active,
+        ]);
+
+        $summary = $this->getJson('/api/v1/admin/dashboard/summary')->assertOk();
+        $response = $this->getJson(self::ENDPOINT.'?stock=low')->assertOk()->assertJsonPath('meta.total', 2);
+        $this->assertSame($summary->json('low_stock_count'), $response->json('meta.total'));
+        $this->assertEqualsCanonicalizing([0, 5], array_column($response->json('data'), 'available_quantity'));
+
+        $this->getJson(self::ENDPOINT.'?stock=low&search=Suspension')->assertOk()
+            ->assertJsonPath('meta.total', 1)->assertJsonPath('data.0.id', $low->id);
+        $this->getJson(self::ENDPOINT.'?stock=unknown')->assertUnprocessable()->assertJsonValidationErrors('stock');
+    }
+
+    public function test_upcoming_batch_expiry_matches_the_dashboard_and_counts_batches_individually(): void
+    {
+        $this->actingAs($this->seedInventory(), 'web');
+        $item = InventoryItem::query()->firstOrFail();
+        $today = today('Asia/Amman');
+        foreach ([
+            ['EXP-TODAY', 0, 1, InventoryBatchStatus::Active],
+            ['EXP-DAY-30', 30, 2, InventoryBatchStatus::Quarantined],
+            ['EXP-PAST', -1, 1, InventoryBatchStatus::Active],
+            ['EXP-DAY-31', 31, 1, InventoryBatchStatus::Active],
+            ['EXP-EMPTY', 10, 0, InventoryBatchStatus::Active],
+        ] as [$batchNo, $days, $onHand, $status]) {
+            $item->batches()->create([
+                'batch_no' => $batchNo, 'expiry_date' => $today->copy()->addDays($days)->toDateString(),
+                'quantity_on_hand' => $onHand, 'status' => $status,
+            ]);
+        }
+
+        $endpoint = '/api/v1/admin/inventory-batches/expiring';
+        $summary = $this->getJson('/api/v1/admin/dashboard/summary')->assertOk();
+        $response = $this->getJson($endpoint)->assertOk()->assertJsonPath('meta.total', 2);
+        $this->assertSame($summary->json('expiring_batches_count'), $response->json('meta.total'));
+        $response->assertJsonPath('data.0.batch_no', 'EXP-TODAY')->assertJsonPath('data.0.item.id', $item->id)
+            ->assertJsonPath('data.1.batch_no', 'EXP-DAY-30')->assertJsonPath('data.1.item.id', $item->id);
+
+        $this->getJson($endpoint.'?'.http_build_query(['pharmacy_id' => $item->pharmacy_id, 'search' => 'EXP-DAY']))
+            ->assertOk()->assertJsonPath('meta.total', 1)->assertJsonPath('data.0.batch_no', 'EXP-DAY-30');
+        $this->getJson($endpoint.'?listing=unlisted')->assertOk()->assertJsonPath('meta.total', 0);
+    }
+
     public function test_admin_manages_inventory_listings_without_removing_stock_history(): void
     {
         $this->actingAs($this->seedInventory(), 'web');
@@ -117,11 +167,13 @@ class AdminInventoryTest extends TestCase
         $customer = User::factory()->create(['platform_role' => PlatformRole::Customer, 'is_active' => true]);
         $this->actingAs($customer, 'web')->getJson(self::ENDPOINT)->assertForbidden();
         $this->getJson(self::ENDPOINT.'/'.InventoryItem::query()->value('id'))->assertForbidden();
+        $this->getJson('/api/v1/admin/inventory-batches/expiring')->assertForbidden();
     }
 
     public function test_guest_cannot_access_inventory(): void
     {
         $this->getJson(self::ENDPOINT)->assertUnauthorized();
+        $this->getJson('/api/v1/admin/inventory-batches/expiring')->assertUnauthorized();
     }
 
     private function seedInventory(): User

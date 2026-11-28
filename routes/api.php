@@ -7,6 +7,7 @@ use App\Http\Controllers\Api\V1\Admin\AdminProfileController;
 use App\Http\Controllers\Api\V1\Admin\AdminReservationController;
 use App\Http\Controllers\Api\V1\Admin\CustomerController;
 use App\Http\Controllers\Api\V1\Admin\DashboardSummaryController;
+use App\Http\Controllers\Api\V1\Admin\ExpiringInventoryBatchController;
 use App\Http\Controllers\Api\V1\Admin\InventoryController;
 use App\Http\Controllers\Api\V1\Admin\MedicineController;
 use App\Http\Controllers\Api\V1\Admin\PharmacyMapController;
@@ -59,6 +60,7 @@ Route::prefix('v1')
                 Route::apiResource('medicines', MedicineController::class);
                 Route::apiResource('active-ingredients', ActiveIngredientController::class)
                     ->parameters(['active-ingredients' => 'activeIngredient']);
+                Route::get('inventory-batches/expiring', ExpiringInventoryBatchController::class)->name('inventory-batches.expiring');
                 Route::apiResource('inventory-items', InventoryController::class)
                     ->parameters(['inventory-items' => 'inventoryItem']);
                 Route::post('inventory-items/{inventoryItem}/receipts', [StockMovementController::class, 'receive'])
