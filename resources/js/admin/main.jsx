@@ -51,7 +51,7 @@ function Login({ onLogin, message }) {
     </div></section></main>;
 }
 
-function Overview({ onDetails }) {
+function Overview({ onDetails, refresh }) {
     const [summary, setSummary] = useState(null);
     const [sites, setSites] = useState(null);
     const [error, setError] = useState('');
@@ -63,7 +63,7 @@ function Overview({ onDetails }) {
         api('/admin/pharmacy-sites').then((next) => { if (current) setSites(next.data); })
             .catch((exception) => { if (current) setError(exception.message); });
         return () => { current = false; };
-    }, []);
+    }, [refresh]);
 
     const stats = [
         ['Pharmacies', summary?.counts.total, 'pharmacies'],
@@ -152,6 +152,7 @@ function App() {
     const status = params.get('status') ?? '';
     const [message, setMessage] = useState(null);
     const [detail, setDetail] = useState(null);
+    const [pharmacyRevision, setPharmacyRevision] = useState(0);
 
     useEffect(() => {
         const navigate = () => setHash(currentHash());
@@ -180,6 +181,12 @@ function App() {
         else openDetails(entity, record.id);
     }
 
+    function pharmacyApproved(application) {
+        setDetail(current => current?.entity === 'pharmacies' && current.record.id === application.id ? null : current);
+        setMessage({ text: application.name_en + ' is now active.' });
+        setPharmacyRevision(revision => revision + 1);
+    }
+
     async function logout() {
         try {
             await api('/auth/logout', { method: 'POST' });
@@ -196,7 +203,7 @@ function App() {
 
     let content;
     if (tab === 'overview') {
-        content = <Overview onDetails={openDetails} />;
+        content = <Overview onDetails={openDetails} refresh={pharmacyRevision} />;
     } else if (tab === 'medicines') {
         content = <Medicines />;
     } else if (tab === 'reservations') {
@@ -211,7 +218,7 @@ function App() {
         const initialGovernorate = tab === 'pharmacies' ? params.get('governorate') ?? '' : '';
         content = <Directory onClearRoute={clearRouteFilters} key={tab + ':' + initialStatus + ':' + initialGovernorate} entity={tab}
             initialStatus={initialStatus} initialGovernorate={initialGovernorate}
-            onChanged={() => setMessage(null)} onDetails={openDetails} />;
+            onChanged={() => setMessage(null)} onDetails={openDetails} refresh={tab === 'pharmacies' ? pharmacyRevision : 0} />;
     }
 
     return <div className="workspace">
@@ -222,7 +229,7 @@ function App() {
         </main>
         {detail && (detail.entity === 'medicines'
             ? <MedicineDetails summary={detail.record} onClose={() => setDetail(null)} />
-            : <RecordDetails {...detail} onClose={() => setDetail(null)} onOpenRelated={id => openDetails('pharmacies', id)} />)}
+            : <RecordDetails {...detail} onClose={() => setDetail(null)} onApproved={pharmacyApproved} />)}
     </div>;
 }
 

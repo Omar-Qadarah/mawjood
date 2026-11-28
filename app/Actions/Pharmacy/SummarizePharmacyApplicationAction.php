@@ -16,7 +16,7 @@ class SummarizePharmacyApplicationAction
 
         $matches = Pharmacy::query()->whereKeyNot($pharmacy->id)
             ->whereRaw("($sameName OR $sameAddress)", [...$names, ...$address])
-            ->select(['id', 'name_en', 'city'])
+            ->select(['id', 'name_en', 'name_ar', 'city', 'governorate', 'address', 'license_no', 'status'])
             ->selectRaw("$sameName AS same_name", $names)
             ->selectRaw("$sameAddress AS same_address", $address);
 
@@ -43,13 +43,22 @@ class SummarizePharmacyApplicationAction
 
         return [
             'summary' => implode(' ', $summary),
-            'matches' => $matches->orderBy('id')->limit(5)->get()->map(fn (Pharmacy $match) => [
-                'id' => $match->id,
-                'name_en' => $match->name_en,
-                'city' => $match->city,
-                'same_name' => (bool) $match->same_name,
-                'same_address' => (bool) $match->same_address,
-            ])->values(),
+            'matches' => $matches->selectRaw('(name_en = ?) AS same_english_name', [$pharmacy->name_en])
+                ->selectRaw('(name_ar = ?) AS same_arabic_name', [$pharmacy->name_ar])
+                ->orderBy('id')->limit(5)->get()->map(fn (Pharmacy $match) => [
+                    'id' => $match->id,
+                    'name_en' => $match->name_en,
+                    'name_ar' => $match->name_ar,
+                    'city' => $match->city,
+                    'governorate' => $match->governorate,
+                    'address' => $match->address,
+                    'license_no' => $match->license_no,
+                    'status' => $match->status->value,
+                    'same_name' => (bool) $match->same_name,
+                    'same_english_name' => (bool) $match->same_english_name,
+                    'same_arabic_name' => (bool) $match->same_arabic_name,
+                    'same_address' => (bool) $match->same_address,
+                ])->values(),
             'signals' => [
                 ...(array) $counts,
                 'has_contact' => $hasContact,

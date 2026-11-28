@@ -11,6 +11,7 @@ use App\Http\Controllers\Api\V1\Admin\ExpiringInventoryBatchController;
 use App\Http\Controllers\Api\V1\Admin\InventoryController;
 use App\Http\Controllers\Api\V1\Admin\MedicineController;
 use App\Http\Controllers\Api\V1\Admin\PharmacyApplicationSummaryController;
+use App\Http\Controllers\Api\V1\Admin\PharmacyApprovalController;
 use App\Http\Controllers\Api\V1\Admin\PharmacyMapController;
 use App\Http\Controllers\Api\V1\Admin\StockMovementController;
 use App\Http\Controllers\Api\V1\Auth\LoginController;
@@ -61,6 +62,7 @@ Route::prefix('v1')
                     ->name('pharmacies.review-summary');
                 Route::post('pharmacies/{pharmacy}/review-summary', PharmacyApplicationSummaryController::class)
                     ->middleware('throttle:10,1')->name('pharmacies.review-summary.generate');
+                Route::post('pharmacies/{pharmacy}/approve', PharmacyApprovalController::class)->name('pharmacies.approve');
                 Route::apiResource('pharmacies', AdminPharmacyController::class);
                 Route::apiResource('customers', CustomerController::class);
                 Route::apiResource('medicines', MedicineController::class);

@@ -28,6 +28,11 @@ class PharmacyApplicationSummaryTest extends TestCase
         $this->getJson($path)->assertOk()->assertJsonCount(1, 'data.matches')
             ->assertJsonPath('data.matches.0.id', $related->id)
             ->assertJsonPath('data.matches.0.same_name', true)
+            ->assertJsonPath('data.matches.0.same_english_name', true)
+            ->assertJsonPath('data.matches.0.same_arabic_name', true)
+            ->assertJsonPath('data.matches.0.license_no', 'MATCH')
+            ->assertJsonPath('data.matches.0.address', 'Same address')
+            ->assertJsonPath('data.matches.0.status', 'active')
             ->assertJsonPath('data.matches.0.same_address', true);
         $this->assertSame(PharmacyStatus::Pending, $pharmacy->fresh()->status);
         $this->getJson('/api/v1/admin/pharmacies/'.$related->id.'/review-summary')->assertConflict();
@@ -75,6 +80,26 @@ class PharmacyApplicationSummaryTest extends TestCase
         $this->actingAs(User::factory()->create(['platform_role' => PlatformRole::Admin, 'is_active' => true]), 'web');
         $this->postJson('/api/v1/admin/pharmacies/'.$pending->id.'/review-summary')->assertOk()
             ->assertJsonPath('data.source', 'directory')->assertJsonCount(0, 'data.matches');
+    }
+
+    public function test_only_a_pending_application_can_be_approved_from_the_review(): void
+    {
+        $pending = $this->pharmacy('APPROVAL');
+        $suspended = $this->pharmacy('SUSPENDED');
+        $suspended->forceFill(['status' => PharmacyStatus::Suspended])->save();
+        $path = '/api/v1/admin/pharmacies/'.$pending->id.'/approve';
+
+        $this->actingAs(User::factory()->create(['platform_role' => PlatformRole::Customer, 'is_active' => true]), 'web');
+        $this->postJson($path)->assertForbidden();
+        $this->assertSame(PharmacyStatus::Pending, $pending->fresh()->status);
+
+        $this->app['auth']->forgetGuards();
+        $this->actingAs(User::factory()->create(['platform_role' => PlatformRole::Admin, 'is_active' => true]), 'web');
+        $this->postJson($path)->assertNoContent();
+        $this->assertSame(PharmacyStatus::Active, $pending->fresh()->status);
+        $this->postJson($path)->assertConflict();
+        $this->postJson('/api/v1/admin/pharmacies/'.$suspended->id.'/approve')->assertConflict();
+        $this->assertSame(PharmacyStatus::Suspended, $suspended->fresh()->status);
     }
 
     private function pharmacy(string $license): Pharmacy

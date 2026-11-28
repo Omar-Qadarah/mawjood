@@ -1,8 +1,13 @@
 import { useEffect, useRef, useState } from 'react';
 import { api } from './api';
+import { PharmacyApplicationComparison } from './PharmacyApplicationComparison';
 import { Notice } from './ui';
 
-export function PharmacyReviewSummary({ pharmacyId, onOpenRelated }) {
+export function PharmacyReviewSummary({ application, onApproved }) {
+    const pharmacyId = application.id;
+    const [comparisonId, setComparisonId] = useState(null);
+    const comparisonHeading = useRef(null);
+    const compareButton = useRef(null);
     const [summary, setSummary] = useState(null);
     const [error, setError] = useState('');
     const [generating, setGenerating] = useState(false);
@@ -19,6 +24,17 @@ export function PharmacyReviewSummary({ pharmacyId, onOpenRelated }) {
             generation.current?.abort();
         };
     }, [pharmacyId]);
+
+    const comparison = summary?.matches.find(match => match.id === comparisonId);
+
+    useEffect(() => {
+        if (comparisonId !== null) comparisonHeading.current?.focus();
+    }, [comparisonId]);
+
+    function closeComparison() {
+        setComparisonId(null);
+        compareButton.current?.focus();
+    }
 
     async function generateSummary() {
         const request = new AbortController();
@@ -52,10 +68,16 @@ export function PharmacyReviewSummary({ pharmacyId, onOpenRelated }) {
                 {generating ? 'Generating…' : 'Generate AI summary'}
             </button>}
             {!!summary.matches.length && <ul>{summary.matches.map(match => <li key={match.id}>
-                <button className="text-button" type="button" onClick={() => onOpenRelated(match.id)}>{match.name_en}</button>
+                <button className="text-button" type="button" aria-pressed={comparisonId === match.id}
+                    onClick={event => {
+                        compareButton.current = event.currentTarget;
+                        setComparisonId(match.id);
+                    }}>Compare with {match.name_en}</button>
                 {' · ' + match.city + ' · ' + (match.same_name && match.same_address ? 'Matching name and address' :
                     match.same_name ? 'Matching name' : match.same_address ? 'Matching address' : 'Possible match')}
             </li>)}</ul>}
+            {comparison && <PharmacyApplicationComparison application={application} match={comparison}
+                headingRef={comparisonHeading} onClose={closeComparison} onApproved={onApproved} />}
         </>}
     </section>;
 }

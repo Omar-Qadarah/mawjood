@@ -46,7 +46,7 @@ function formatHours(hours) {
         ' · ' + slot.opens_at + '–' + slot.closes_at).join('\n');
 }
 
-export function RecordDetails({ entity, record, onClose, onOpenRelated }) {
+export function RecordDetails({ entity, record, onClose, onApproved }) {
     const pharmacy = entity === 'pharmacies';
     const memberships = (record.memberships ?? []).map((membership) => (membership.name ?? membership.pharmacy) +
         ' · ' + membership.role + (membership.is_active ? '' : ' (inactive)')).join('\n');
@@ -59,14 +59,16 @@ export function RecordDetails({ entity, record, onClose, onOpenRelated }) {
         Joined: new Date(record.created_at).toLocaleDateString(), 'Pharmacy memberships': memberships,
     };
 
-    return <Modal title={pharmacy ? record.name_en : record.name} onClose={onClose}>
+    const pending = pharmacy && record.status === 'pending';
+
+    return <Modal title={pharmacy ? record.name_en : record.name} onClose={onClose} wide={pending}>
         <Details values={values} />
-        {pharmacy && record.status === 'pending' && <PharmacyReviewSummary key={record.id} pharmacyId={record.id} onOpenRelated={onOpenRelated} />}
+        {pending && <PharmacyReviewSummary key={record.id} application={record} onApproved={onApproved} />}
         <footer className="form-actions"><button className="button secondary" type="button" onClick={onClose}>Done</button></footer>
     </Modal>;
 }
 
-export function Directory({ entity, initialStatus = '', initialGovernorate = '', onClearRoute, onChanged, onDetails }) {
+export function Directory({ entity, initialStatus = '', initialGovernorate = '', onClearRoute, onChanged, onDetails, refresh = 0 }) {
     const pharmacy = entity === 'pharmacies';
     const singular = pharmacy ? 'pharmacy' : 'customer';
     const path = '/admin/' + entity;
@@ -103,7 +105,7 @@ export function Directory({ entity, initialStatus = '', initialGovernorate = '',
         });
 
         return () => { current = false; cancel?.(); };
-    }, [loadTable, path, page, filters, revision]);
+    }, [loadTable, path, page, filters, revision, refresh]);
 
     function filter(key, value) {
         setPage(1);

@@ -973,6 +973,49 @@ td strong,
         grid-template-columns: minmax(0, 1fr);
     }
 }
+
+.pharmacy-comparison {
+    margin-top: 12px;
+}
+.pharmacy-comparison-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-bottom: 8px;
+}
+.pharmacy-comparison table {
+    table-layout: fixed;
+}
+.pharmacy-comparison th:first-child {
+    width: 24%;
+}
+.pharmacy-comparison th,
+.pharmacy-comparison td {
+    white-space: normal;
+    overflow-wrap: anywhere;
+}
+.pharmacy-comparison .comparison-match > * {
+    background: #e6f4ee;
+}
+.comparison-badge {
+    display: block;
+    width: fit-content;
+    margin-top: 4px;
+    padding: 0 5px;
+    border-radius: 5px;
+    background: #cfe9de;
+    color: #155447;
+    font-size: 0.68rem;
+    font-weight: 750;
+}
+@media (max-width: 600px) {
+    .pharmacy-comparison th,
+    .pharmacy-comparison td {
+        padding: 6px 4px;
+    }
+}
 .overview-grid > .status-panel {
     display: grid;
     grid-template-rows: auto 1fr;
