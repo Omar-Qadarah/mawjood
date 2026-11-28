@@ -4,12 +4,12 @@ namespace App\Http\Controllers\Api\V1\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\User;
+use App\Rules\AccountPassword;
 use Closure;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Validation\Rules\Password;
 use Illuminate\Validation\ValidationException;
 
 class AdminPasswordController extends Controller
@@ -18,7 +18,7 @@ class AdminPasswordController extends Controller
     {
         $data = $request->validate([
             'current_password' => ['required', 'string', 'max:255'],
-            'password' => ['required', 'string', 'confirmed', 'different:current_password', Password::min(8),
+            'password' => [...AccountPassword::rules(), 'different:current_password',
                 function (string $attribute, mixed $value, Closure $fail): void {
                     if (is_string($value) && strlen($value) > 72) {
                         $fail('The new password must be no longer than 72 bytes.');

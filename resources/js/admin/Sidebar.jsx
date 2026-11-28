@@ -50,7 +50,15 @@ export function Sidebar({ user, tab, onLogout, onOpenRecord }) {
         navTrigger.current?.focus();
     }
 
+    function openQuickJumpFromTrigger() {
+        if (menu === 'navigation' && window.matchMedia('(max-width: 1024px)').matches) {
+            setMenu(null);
+            return navTrigger.current;
+        }
+    }
+
     function startSwipe(event, opening = false) {
+        if (!event.currentTarget.contains(event.target)) return;
         swipe.current = null;
         if ((opening || menu === 'navigation') && event.pointerType === 'touch' && event.isPrimary) {
             swipe.current = { pointerId: event.pointerId, x: event.clientX, y: event.clientY, opening };
@@ -113,7 +121,6 @@ export function Sidebar({ user, tab, onLogout, onOpenRecord }) {
             <Icon name="menu" size={22} />
         </button>
         <Brand />
-        <QuickJump sections={sections} onOpenRecord={onOpenRecord} />
         <div className="navigation-edge" aria-hidden="true" hidden={menu === 'navigation'}
             onPointerDown={event => startSwipe(event, true)} onPointerMove={moveSwipe} onPointerUp={finishSwipe}
             onPointerCancel={cancelSwipe} onLostPointerCapture={cancelSwipe} />
@@ -127,6 +134,7 @@ export function Sidebar({ user, tab, onLogout, onOpenRecord }) {
             <button className="icon-button navigation-close" type="button" aria-label="Close navigation menu" onClick={closeNavigation}>
                 <Icon name="close" size={22} />
             </button>
+            <QuickJump sections={sections} onOpenRecord={onOpenRecord} onOpenFromTrigger={openQuickJumpFromTrigger} />
             {navigation.map(([key, title]) =>
                 <a key={key} href={'#' + key} aria-current={tab === key ? 'page' : undefined}
                     onClick={menu === 'navigation' ? closeNavigation : undefined}><Icon name={key} />{title}</a>)}

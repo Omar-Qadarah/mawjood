@@ -1,6 +1,6 @@
-const settings = document.querySelector('#mawjood-admin').dataset;
+const settings = document.querySelector('#mawjood-admin, #mawjood-signup').dataset;
 
-export const places = JSON.parse(settings.places);
+export const places = JSON.parse(settings.places ?? '{}');
 
 export async function api(path, { method = 'GET', body, signal } = {}) {
     const headers = { Accept: 'application/json' };
@@ -26,9 +26,17 @@ export async function api(path, { method = 'GET', body, signal } = {}) {
     return result;
 }
 
-export async function signIn(credentials) {
+async function submitAuthForm(path, body) {
     const response = await fetch(settings.csrfUrl, { credentials: 'same-origin' });
     if (!response.ok) throw new Error('Could not start the sign-in session.');
 
-    return (await api('/auth/login', { method: 'POST', body: credentials })).data;
+    return (await api(path, { method: 'POST', body })).data;
+}
+
+export function signIn(credentials) {
+    return submitAuthForm('/auth/login', credentials);
+}
+
+export function signUp(details) {
+    return submitAuthForm('/auth/register', details);
 }

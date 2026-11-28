@@ -40,13 +40,18 @@ class AdminProfileTest extends TestCase
     {
         $admin = $this->admin();
         $this->actingAs($admin, 'web');
-        $payload = ['password' => 'New-test-password', 'password_confirmation' => 'New-test-password'];
+        $payload = ['password' => 'New-test-password1', 'password_confirmation' => 'New-test-password1'];
         $this->patchJson(self::URL.'/password', $payload + ['current_password' => 'wrong'])
             ->assertUnprocessable()->assertJsonValidationErrors('current_password');
         $this->patchJson(self::URL.'/password', ['password_confirmation' => 'mismatch'] + $payload + ['current_password' => 'Original-test-password'])
             ->assertUnprocessable()->assertJsonValidationErrors('password');
+        foreach (['Aa1!bcd', 'abcdef1!', 'ABCDEF1!', 'Abcdefg!', 'Abcd ef1'] as $weak) {
+            $this->patchJson(self::URL.'/password', [
+                'current_password' => 'Original-test-password', 'password' => $weak, 'password_confirmation' => $weak,
+            ])->assertUnprocessable()->assertJsonValidationErrors('password');
+        }
         $this->patchJson(self::URL.'/password', $payload + ['current_password' => 'Original-test-password'])->assertNoContent();
-        $this->assertTrue(Hash::check('New-test-password', $admin->fresh()->password));
+        $this->assertTrue(Hash::check('New-test-password1', $admin->fresh()->password));
         $this->assertFalse(Hash::check('Original-test-password', $admin->fresh()->password));
         $this->assertNull($admin->fresh()->remember_token);
     }

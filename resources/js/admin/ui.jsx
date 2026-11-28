@@ -13,6 +13,7 @@ export function Icon({ name, size = 19 }) {
         arrow: 'M5 12h14m-6-6 6 6-6 6',
         location: 'M20 10c0 5-8 11-8 11S4 15 4 10a8 8 0 1 1 16 0zM12 12a2 2 0 1 0 0-4 2 2 0 0 0 0 4z',
         view: 'M2 12s3.6-6 10-6 10 6 10 6-3.6 6-10 6-10-6-10-6zm10-2.5a2.5 2.5 0 1 0 0 5 2.5 2.5 0 0 0 0-5z',
+        viewOff: 'M3 3l18 18M10.6 10.6a2 2 0 0 0 2.8 2.8M9 5.4a9 9 0 0 1 3-.5c6 0 10 7.1 10 7.1a18 18 0 0 1-3 3.5M6 7a18 18 0 0 0-4 5s4 7.1 10 7.1a9 9 0 0 0 4.5-1.2',
         license: 'M4 5h16a1 1 0 0 1 1 1v12a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1zm10 5h4m-4 4h4M6 15a3 3 0 0 1 6 0m-3-3.5a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3z',
         edit: 'm14 5 5 5M4 20l5-1 11-11a2.8 2.8 0 0 0-4-4L5 15z',
         delete: 'M4 7h16M9 7V4h6v3m3 0-1 13H7L6 7m4 3v7m4-7v7',
@@ -156,8 +157,8 @@ export function LicensePopover({ pharmacy, value }) {
     </TablePopover>;
 }
 
-export function Brand() {
-    return <div className="brand"><img className="brand-mark" src={logo} alt="" width="41" height="41" /><div>Mawjood<small>Administration</small></div></div>;
+export function Brand({ subtitle = 'Administration' }) {
+    return <div className="brand"><img className="brand-mark" src={logo} alt="" width="41" height="41" /><div>Mawjood{subtitle && <small>{subtitle}</small>}</div></div>;
 }
 
 export function Modal({ title, onClose, children, wide = false }) {

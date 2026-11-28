@@ -2,7 +2,9 @@ import { ResetSortButton, sortRows, TableHead, useTableSort } from './TableSort'
 import { useEffect, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import { api, signIn } from './api';
-import { Brand, Field, Icon, Notice, Status } from './ui';
+import { AuthLayout } from './AuthLayout';
+import { PasswordField } from './PasswordField';
+import { Field, Icon, Notice, Status } from './ui';
 import { Directory, RecordDetails } from './Directory';
 import { JordanMap } from './JordanMap';
 import { MedicineDetails, Medicines } from './Medicines';
@@ -38,19 +40,16 @@ function Login({ onLogin, message }) {
         }
     }
 
-    return <main className="login-page"><section className="login-identity"><Brand />
-        <div><h1>Manage the pharmacy network.</h1><p>Review listings and coordinate the Mawjood directory.</p></div>
-        <div className="login-decoration" aria-hidden="true" />
-    </section><section className="login-content"><div className="login-box">
+    return <AuthLayout title="Manage the pharmacy network." subtitle="Review listings and coordinate the Mawjood directory.">
         <h2>Administrator sign in</h2>
         <Notice>{message}</Notice><Notice error>{error}</Notice>
         <form onSubmit={submit}>
             <Field label="Email"><input type="email" name="email" autoComplete="username" required /></Field>
-            <Field label="Password"><input type="password" name="password" autoComplete="current-password" required /></Field>
+            <PasswordField label="Password" name="password" autoComplete="current-password" required />
             <label className="checkbox"><input type="checkbox" name="remember" />Remember me</label>
             <button className="button primary" disabled={busy}>{busy ? 'Signing in…' : 'Sign in'}<Icon name="arrow" /></button>
         </form>
-    </div></section></main>;
+    </AuthLayout>;
 }
 
 function Overview({ onDetails, refresh }) {

@@ -1,4 +1,5 @@
 import { useEffect, useId, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { api } from './api';
 import { Icon, Modal } from './ui';
 
@@ -13,7 +14,7 @@ const recordTypes = {
     customers: { name: 'name', label: 'Customer' },
 };
 
-export function QuickJump({ sections, onOpenRecord }) {
+export function QuickJump({ sections, onOpenRecord, onOpenFromTrigger }) {
     const [open, setOpen] = useState(false);
     const [search, setSearch] = useState('');
     const [recordSearch, setRecordSearch] = useState(null);
@@ -32,8 +33,8 @@ export function QuickJump({ sections, onOpenRecord }) {
     const selected = matches[selectedIndex];
     const selectedId = selected ? listId + '-' + selectedIndex : undefined;
 
-    function openMenu() {
-        returnFocus.current = document.activeElement === document.body ? trigger.current : document.activeElement;
+    function openMenu(focusTarget) {
+        returnFocus.current = focusTarget ?? (document.activeElement === document.body ? trigger.current : document.activeElement);
         setSearch('');
         setRecordSearch(null);
         setSelectedIndex(0);
@@ -127,10 +128,11 @@ export function QuickJump({ sections, onOpenRecord }) {
     }
 
     return <div className="quick-jump">
-        <button ref={trigger} type="button" className="quick-jump-trigger" aria-haspopup="dialog" aria-keyshortcuts="Control+K Meta+K" onClick={openMenu}>
+        <button ref={trigger} type="button" className="quick-jump-trigger" aria-haspopup="dialog" aria-keyshortcuts="Control+K Meta+K"
+            onClick={() => openMenu(onOpenFromTrigger?.() ?? trigger.current)}>
             <Icon name="search" size={16} /> Quick jump <kbd aria-hidden="true">Ctrl/⌘ K</kbd>
         </button>
-        {open && <Modal title="Quick jump" onClose={() => setOpen(false)}>
+        {open && createPortal(<Modal title="Quick jump" onClose={() => setOpen(false)}>
             <form className="quick-jump-form" onSubmit={navigate}>
                 <label className="field">
                     <span>Find a page, pharmacy, medicine, or customer</span>
@@ -151,7 +153,10 @@ export function QuickJump({ sections, onOpenRecord }) {
                                 <Icon name={icon} size={17} />
                                 <span>{label}{context && <small>{context}</small>}</span>
                                 <small className="quick-jump-category">{category}</small>
-                            </button> : <a {...props} href={href} onClick={() => setOpen(false)}>
+                            </button> : <a {...props} href={href} onClick={(event) => {
+                                event.preventDefault();
+                                choose(match);
+                            }}>
                                 <Icon name={icon} size={17} />{label}
                             </a>}
                         </li>;
@@ -163,6 +168,6 @@ export function QuickJump({ sections, onOpenRecord }) {
                     {term.length < 2 ? 'Type at least two characters to search records.' : 'No matching pages or records.'}
                 </p>}
             </form>
-        </Modal>}
+        </Modal>, document.body)}
     </div>;
 }

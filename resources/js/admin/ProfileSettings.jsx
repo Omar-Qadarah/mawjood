@@ -1,11 +1,15 @@
 import { useEffect, useRef, useState } from 'react';
 import { api } from './api';
 import { Field, Modal, Notice } from './ui';
+import { NewPasswordFields, useNewPassword } from './NewPasswordFields';
+import { PasswordField } from './PasswordField';
 import { ProfilePhotoCrop } from './ProfilePhotoCrop';
 
 export function ProfileSettings({ user, onUpdated }) {
     const [feedback, setFeedback] = useState({});
     const [saving, setSaving] = useState('');
+    const [passwordFormVersion, setPasswordFormVersion] = useState(0);
+    const passwordSetup = useNewPassword();
     const [previewUrl, setPreviewUrl] = useState(null);
     const [enlarged, setEnlarged] = useState(false);
     const [cropping, setCropping] = useState(false);
@@ -51,6 +55,8 @@ export function ProfileSettings({ user, onUpdated }) {
 
     async function save(event, section) {
         event.preventDefault();
+        if (section === 'password' && !passwordSetup.ready) return;
+
         const form = event.currentTarget;
         const data = new FormData(form);
         setSaving(section);
@@ -64,6 +70,8 @@ export function ProfileSettings({ user, onUpdated }) {
                 previewPhoto(null);
             } else {
                 await api('/admin/profile/password', { method: 'PATCH', body: Object.fromEntries(data) });
+                passwordSetup.reset();
+                setPasswordFormVersion((version) => version + 1);
             }
             form.reset();
             setFeedback({ section, message: section === 'profile' ? 'Profile saved.' : 'Password changed.' });
@@ -97,13 +105,14 @@ export function ProfileSettings({ user, onUpdated }) {
                 </div>
                 <button className="button primary" disabled={Boolean(saving)}>{saving === 'profile' ? 'Saving…' : 'Save profile'}</button>
             </form>
-            <form className="panel profile-form" onSubmit={(event) => save(event, 'password')} aria-label="Change password">
+            <form key={passwordFormVersion} className="panel profile-form" onSubmit={(event) => save(event, 'password')} aria-label="Change password">
                 <h2>Change password</h2>
                 {feedback.section === 'password' && <Notice error={feedback.error}>{feedback.message}</Notice>}
-                <Field label="Current password"><input name="current_password" type="password" autoComplete="current-password" required /></Field>
-                <Field label="New password"><input name="password" type="password" autoComplete="new-password" minLength={8} required /></Field>
-                <Field label="Confirm new password"><input name="password_confirmation" type="password" autoComplete="new-password" minLength={8} required /></Field>
-                <button className="button primary" disabled={Boolean(saving)}>{saving === 'password' ? 'Changing…' : 'Change password'}</button>
+                <PasswordField label="Current password" name="current_password" autoComplete="current-password" required />
+                <NewPasswordFields setup={passwordSetup} passwordLabel="New password" confirmationLabel="Confirm new password" />
+                <button className="button primary" disabled={Boolean(saving) || !passwordSetup.ready}>
+                    {saving === 'password' ? 'Changing…' : 'Change password'}
+                </button>
             </form>
         </div>
         {enlarged && (displayedPreview || user.avatar_url) && <Modal

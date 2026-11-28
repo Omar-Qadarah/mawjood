@@ -5,6 +5,8 @@
         <meta name="viewport" content="width=device-width, initial-scale=1">
 
         <title>{{ config('app.name', 'Laravel') }}</title>
+        <link rel="icon" type="image/x-icon" href="{{ asset('favicon.ico') }}">
+        <link rel="icon" type="image/png" sizes="32x32" href="{{ asset('mawjood-tab.png') }}">
 
         <!-- Fonts -->
         <link rel="preconnect" href="https://fonts.bunny.net">
@@ -46,6 +48,12 @@
                             </a>
                         @endif
                     @endauth
+                </nav>
+            @else
+                <nav class="flex items-center justify-end">
+                    <a href="{{ route('customer.signup') }}" class="inline-block px-5 py-1.5 rounded-sm border text-sm">
+                        Sign up as a customer
+                    </a>
                 </nav>
             @endif
         </header>

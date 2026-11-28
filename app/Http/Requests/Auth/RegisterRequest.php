@@ -2,9 +2,9 @@
 
 namespace App\Http\Requests\Auth;
 
+use App\Rules\AccountPassword;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Support\Str;
-use Illuminate\Validation\Rules\Password;
 
 class RegisterRequest extends FormRequest
 {
@@ -27,7 +27,7 @@ class RegisterRequest extends FormRequest
             'name' => ['required', 'string', 'max:150'],
             'email' => ['required', 'string', 'email', 'max:190', 'unique:users,email'],
             'phone' => ['nullable', 'string', 'regex:/^\+[1-9]\d{7,14}$/', 'max:20', 'unique:users,phone'],
-            'password' => ['required', 'string', Password::min(10)->letters()->numbers()],
+            'password' => AccountPassword::rules(),
             'locale' => ['sometimes', 'in:ar,en'],
         ];
     }

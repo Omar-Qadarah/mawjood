@@ -18,6 +18,8 @@ Mawjood connects customers with pharmacies that have medicine in stock. This Lar
 
 6. Run `npm run build` and `php artisan serve`. Open [the admin sign-in](http://127.0.0.1:8000/admin) and use the admin credentials you set above.
 
+Customer signup is available at `/signup`. API clients calling `POST /api/v1/auth/register` must send `password_confirmation` matching `password`.
+
 On XAMPP, use `C:\xampp\php\php.exe` in place of `php` if PHP is missing from your PATH.
 
 ## Dashboard modules
