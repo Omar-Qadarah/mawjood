@@ -177,7 +177,7 @@ export function Directory({ entity, initialStatus = '', initialGovernorate = '',
                     <tbody>
                         {results?.data.length ? results.data.map((entry) => <tr key={entry.id}>
                             <td><strong>{pharmacy ? entry.name_en : entry.name}</strong>{pharmacy && <small className="table-secondary" lang="ar">{entry.name_ar}</small>}</td>
-                            <td>{pharmacy ? entry.license_no : entry.email || '—'}</td>
+                            <td className={pharmacy ? 'table-nowrap' : undefined}>{pharmacy ? entry.license_no : entry.email || '—'}</td>
                             {pharmacy && <td className="table-cell-centered">{entry.city}</td>}
                             <td><Status status={pharmacy ? entry.status : entry.is_active ? 'active' : 'inactive'} /></td>
                             <td className="table-cell-centered">{entry.memberships_count}</td>

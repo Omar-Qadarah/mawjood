@@ -10,10 +10,11 @@ export function TableFilters({ label = 'Search', search, onSearch, placeholder, 
                     onChange={(event) => onSearch(event.target.value)} />
             </span>
         </Field>
-        {children}
+        {children && <div className="table-filter-options">{children}</div>}
         <div className="table-controls">
             <button className="button secondary" type="button" onClick={onClear}>Clear filters</button>
             <ResetSortButton sort={sort} onReset={onSortReset} />
         </div>
+        <span className="table-swipe-hint">Swipe for more columns</span>
     </div>;
 }
