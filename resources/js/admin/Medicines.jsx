@@ -18,7 +18,7 @@ function unitBasis(component) {
 }
 
 export function MedicineDetails({ summary, onClose }) {
-    const ingredientSort = useTableSort();
+    const ingredientSort = useTableSort('medicine-ingredients');
     const [medicine, setMedicine] = useState(null);
     const [error, setError] = useState('');
 
@@ -72,7 +72,7 @@ export function MedicineDetails({ summary, onClose }) {
 export function Medicines() {
     const [search, setSearch] = useState('');
     const [status, setStatus] = useState('');
-    const sort = useTableSort('name');
+    const sort = useTableSort('medicines', 'name');
     const [page, setPage] = useState(1);
     const [result, setResult] = useState(null);
     const [loading, setLoading] = useState(true);
@@ -184,7 +184,7 @@ export function Medicines() {
                     <tbody>{!loading && !error && rows.length ? rows.map((medicine) => <tr key={medicine.id}>
                         <td><strong>{medicine.name_en}</strong>{medicine.name_ar && <small className="table-secondary" lang="ar">{medicine.name_ar}</small>}
                             <small className="table-secondary">{medicine.manufacturer_name}</small></td>
-                        <td>{medicine.strength_text}</td><td>{packageSize(medicine)}</td><td><Status status={medicine.catalog_status} /></td>
+                        <td>{medicine.strength_text}</td><td className="table-cell-centered">{packageSize(medicine)}</td><td><Status status={medicine.catalog_status} /></td>
                         <td><div className="row-actions">
                             <TableAction icon="view" onClick={() => setSelection(medicine)} label={'View ' + medicine.name_en} />
                             <TableAction icon="edit" onClick={() => setEditor(medicine)} label={'Edit ' + medicine.name_en} />

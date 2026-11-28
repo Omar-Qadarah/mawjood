@@ -12,8 +12,8 @@ const endpoint = '/admin/inventory-items';
 const expiringEndpoint = '/admin/inventory-batches/expiring';
 
 function StockDetails({ item, onClose, onChanged }) {
-    const batchSort = useTableSort('expiry_date');
-    const movementSort = useTableSort();
+    const batchSort = useTableSort('stock-batches', 'expiry_date');
+    const movementSort = useTableSort('stock-movements');
     const [data, setData] = useState(null);
     const [error, setError] = useState('');
     const [notice, setNotice] = useState('');
@@ -84,7 +84,9 @@ function StockDetails({ item, onClose, onChanged }) {
 }
 
 export function Inventory({ initialStock = '', expiring = false, onClearRoute }) {
-    const sort = useTableSort(expiring ? 'expiry' : undefined);
+    const listingSort = useTableSort('inventory');
+    const expirySort = useTableSort('expiring-batches', 'expiry');
+    const sort = expiring ? expirySort : listingSort;
     const [pharmacies, setPharmacies] = useState(null);
     const [pharmacyError, setPharmacyError] = useState('');
     const [filter, setFilter] = useState({ pharmacy: '', search: '', listing: '', stock: initialStock, page: 1 });

@@ -53,7 +53,7 @@ function Login({ onLogin, message }) {
 }
 
 function Overview({ onDetails, refresh }) {
-    const recentSort = useTableSort('created_at', 'desc');
+    const recentSort = useTableSort('recent-pharmacies', 'created_at', 'desc');
     const [summary, setSummary] = useState(null);
     const [sites, setSites] = useState(null);
     const [error, setError] = useState('');

@@ -81,7 +81,7 @@ export function Directory({ entity, initialStatus = '', initialGovernorate = '',
         governorate: pharmacy && Object.hasOwn(places, initialGovernorate) ? initialGovernorate : '',
         city: '',
     });
-    const sort = useTableSort();
+    const sort = useTableSort(entity);
     const [page, setPage] = useState(1);
     const [revision, setRevision] = useState(0);
     const [results, setResults] = useState(null);
@@ -173,9 +173,9 @@ export function Directory({ entity, initialStatus = '', initialGovernorate = '',
                         {results?.data.length ? results.data.map((entry) => <tr key={entry.id}>
                             <td><strong>{pharmacy ? entry.name_en : entry.name}</strong>{pharmacy && <small className="table-secondary" lang="ar">{entry.name_ar}</small>}</td>
                             <td>{pharmacy ? entry.license_no : entry.email || '—'}</td>
-                            {pharmacy && <td>{entry.city}</td>}
+                            {pharmacy && <td className="table-cell-centered">{entry.city}</td>}
                             <td><Status status={pharmacy ? entry.status : entry.is_active ? 'active' : 'inactive'} /></td>
-                            <td>{entry.memberships_count}</td>
+                            <td className="table-cell-centered">{entry.memberships_count}</td>
                             <td><div className="row-actions">
                                 <TableAction icon={pharmacy && entry.status === 'pending' ? 'reservations' : 'view'}
                                     label={pharmacy && entry.status === 'pending' ? 'Review application for ' + entry.name_en : 'View ' + (pharmacy ? entry.name_en : entry.name)}

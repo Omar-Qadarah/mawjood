@@ -419,6 +419,13 @@ td {
     border-top: 1px solid #e7efec;
     vertical-align: middle;
 }
+td {
+    text-align: left;
+}
+td.table-cell-centered,
+td:has(> .status, > .table-action, > .row-actions) {
+    text-align: center;
+}
 tbody tr:hover {
     background: #f5faf8;
 }

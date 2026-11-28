@@ -22,7 +22,7 @@ function fieldValue(field, value) {
 }
 
 export function PharmacyApplicationComparison({ application, match, headingRef, onClose, onApproved }) {
-    const sort = useTableSort();
+    const sort = useTableSort('pharmacy-comparison');
     const [confirming, setConfirming] = useState(false);
     const [approving, setApproving] = useState(false);
     const [error, setError] = useState('');
@@ -65,8 +65,8 @@ export function PharmacyApplicationComparison({ application, match, headingRef, 
                         && Boolean(application[field]) && application[field] === match[field];
                     return <tr key={field} className={matching ? 'comparison-match' : undefined}>
                         <th scope="row">{label}{matching && <span className="comparison-badge">Match</span>}</th>
-                        <td>{fieldValue(field, application[field])}</td>
-                        <td>{fieldValue(field, match[field])}</td>
+                        <td className={field === 'city' ? 'table-cell-centered' : undefined}>{fieldValue(field, application[field])}</td>
+                        <td className={field === 'city' ? 'table-cell-centered' : undefined}>{fieldValue(field, match[field])}</td>
                     </tr>;
                 })}</tbody>
             </table>

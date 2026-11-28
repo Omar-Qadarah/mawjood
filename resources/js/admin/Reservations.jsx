@@ -18,7 +18,7 @@ function formatDeadline(value) {
 }
 
 export function Reservations({ initialStatus = '', initialGovernorate = '', initialDeadline = '', onClearRoute }) {
-    const sort = useTableSort(initialDeadline ? 'deadline' : undefined);
+    const sort = useTableSort('reservations', initialDeadline ? 'deadline' : undefined);
     const [filter, setFilter] = useState({
         search: '',
         status: statuses.includes(initialStatus) ? initialStatus : '',
