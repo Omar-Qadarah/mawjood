@@ -17,6 +17,7 @@ return [
     'openai' => [
         'key' => env('OPENAI_API_KEY'),
         'smart_search_model' => env('OPENAI_SMART_SEARCH_MODEL', 'gpt-4.1-mini'),
+        'pharmacy_review_model' => env('OPENAI_PHARMACY_REVIEW_MODEL', 'gpt-4.1-mini'),
     ],
 
     'postmark' => [

@@ -59,6 +59,8 @@ Route::prefix('v1')
                 Route::get('pharmacy-sites', PharmacyMapController::class)->name('pharmacy-sites');
                 Route::get('pharmacies/{pharmacy}/review-summary', PharmacyApplicationSummaryController::class)
                     ->name('pharmacies.review-summary');
+                Route::post('pharmacies/{pharmacy}/review-summary', PharmacyApplicationSummaryController::class)
+                    ->middleware('throttle:10,1')->name('pharmacies.review-summary.generate');
                 Route::apiResource('pharmacies', AdminPharmacyController::class);
                 Route::apiResource('customers', CustomerController::class);
                 Route::apiResource('medicines', MedicineController::class);

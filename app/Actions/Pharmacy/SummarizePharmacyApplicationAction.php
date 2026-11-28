@@ -3,39 +3,58 @@
 namespace App\Actions\Pharmacy;
 
 use App\Models\Pharmacy;
-use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Facades\DB;
 
 class SummarizePharmacyApplicationAction
 {
     public function execute(Pharmacy $pharmacy): array
     {
-        $matches = Pharmacy::query()->whereKeyNot($pharmacy->id)
-            ->where(fn (Builder $query) => $query
-                ->where('name_en', $pharmacy->name_en)->orWhere('name_ar', $pharmacy->name_ar)
-                ->orWhere(fn (Builder $location) => $location->where('governorate', $pharmacy->governorate)
-                    ->where('city', $pharmacy->city)->where('address', $pharmacy->address)))
-            ->orderBy('id')->limit(5)->get(['id', 'name_en', 'name_ar', 'city', 'governorate', 'address'])
-            ->map(fn (Pharmacy $match) => [
-                'id' => $match->id,
-                'name_en' => $match->name_en,
-                'city' => $match->city,
-                'same_name' => mb_strtolower($match->name_en) === mb_strtolower($pharmacy->name_en) || $match->name_ar === $pharmacy->name_ar,
-                'same_address' => $match->governorate === $pharmacy->governorate && $match->city === $pharmacy->city
-                    && mb_strtolower($match->address) === mb_strtolower($pharmacy->address),
-            ])->values();
+        $sameName = '(name_en = ? OR name_ar = ?)';
+        $sameAddress = '(governorate = ? AND city = ? AND address = ?)';
+        $names = [$pharmacy->name_en, $pharmacy->name_ar];
+        $address = [$pharmacy->governorate, $pharmacy->city, $pharmacy->address];
 
-        $summary = [$matches->isEmpty()
+        $matches = Pharmacy::query()->whereKeyNot($pharmacy->id)
+            ->whereRaw("($sameName OR $sameAddress)", [...$names, ...$address])
+            ->select(['id', 'name_en', 'city'])
+            ->selectRaw("$sameName AS same_name", $names)
+            ->selectRaw("$sameAddress AS same_address", $address);
+
+        $counts = DB::query()->fromSub(clone $matches, 'matches')
+            ->selectRaw('COUNT(*) AS match_count')
+            ->selectRaw('COUNT(CASE WHEN same_name = 1 AND same_address = 0 THEN 1 END) AS name_only_count')
+            ->selectRaw('COUNT(CASE WHEN same_name = 0 AND same_address = 1 THEN 1 END) AS address_only_count')
+            ->selectRaw('COUNT(CASE WHEN same_name = 1 AND same_address = 1 THEN 1 END) AS name_and_address_count')
+            ->first();
+
+        $hasContact = filled($pharmacy->phone) || filled($pharmacy->email);
+        $hasOpeningHours = filled($pharmacy->opening_hours);
+        $summary = [(int) $counts->match_count === 0
             ? 'No matching name or address was found in the directory.'
             : 'Compare the listed records for possible overlap before approval.'];
 
-        if (blank($pharmacy->phone) && blank($pharmacy->email)) {
+        if (! $hasContact) {
             $summary[] = 'No contact details were provided.';
         }
-        if (blank($pharmacy->opening_hours)) {
+        if (! $hasOpeningHours) {
             $summary[] = 'No opening hours were provided.';
         }
         $summary[] = 'Verify the license and location before approving.';
 
-        return ['summary' => implode(' ', $summary), 'matches' => $matches];
+        return [
+            'summary' => implode(' ', $summary),
+            'matches' => $matches->orderBy('id')->limit(5)->get()->map(fn (Pharmacy $match) => [
+                'id' => $match->id,
+                'name_en' => $match->name_en,
+                'city' => $match->city,
+                'same_name' => (bool) $match->same_name,
+                'same_address' => (bool) $match->same_address,
+            ])->values(),
+            'signals' => [
+                ...(array) $counts,
+                'has_contact' => $hasContact,
+                'has_opening_hours' => $hasOpeningHours,
+            ],
+        ];
     }
 }
