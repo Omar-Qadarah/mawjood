@@ -1,3 +1,4 @@
+import { sortRows, TableHead, useTableSort } from './TableSort';
 import { useEffect, useRef, useState } from 'react';
 import { api } from './api';
 import { Notice, Status } from './ui';
@@ -21,6 +22,7 @@ function fieldValue(field, value) {
 }
 
 export function PharmacyApplicationComparison({ application, match, headingRef, onClose, onApproved }) {
+    const sort = useTableSort();
     const [confirming, setConfirming] = useState(false);
     const [approving, setApproving] = useState(false);
     const [error, setError] = useState('');
@@ -53,16 +55,12 @@ export function PharmacyApplicationComparison({ application, match, headingRef, 
     return <section className="pharmacy-comparison" aria-labelledby="pharmacy-comparison-heading">
         <header className="pharmacy-comparison-header">
             <h3 id="pharmacy-comparison-heading" ref={headingRef} tabIndex={-1}>Compare pharmacies</h3>
-            <button className="button small secondary" type="button" disabled={approving} onClick={onClose}>Close comparison</button>
+            <button className="button small secondary" type="button" disabled={approving} onClick={onClose}>Back to matches</button>
         </header>
         <div className="table-scroll">
             <table aria-label="Side-by-side pharmacy comparison">
-                <thead><tr>
-                    <th scope="col">Field</th>
-                    <th scope="col">Pending application</th>
-                    <th scope="col">Matching pharmacy</th>
-                </tr></thead>
-                <tbody>{fields.map(([label, field, flag]) => {
+                <TableHead columns={[["Field","label"],["Pending application","application"],["Matching pharmacy","match"]]} sort={sort} />
+                <tbody>{sortRows(fields, sort, ([label, field], key) => key === 'label' ? label : (key === 'application' ? application : match)[field]).map(([label, field, flag]) => {
                     const matching = flag ? match[flag] : ['city', 'governorate'].includes(field)
                         && Boolean(application[field]) && application[field] === match[field];
                     return <tr key={field} className={matching ? 'comparison-match' : undefined}>
@@ -73,12 +71,12 @@ export function PharmacyApplicationComparison({ application, match, headingRef, 
                 })}</tbody>
             </table>
         </div>
-        <div className="form-actions">
-            <button ref={approveButton} className="button primary" type="button" disabled={confirming} onClick={() => setConfirming(true)}>
+        {!confirming && <div className="comparison-actions">
+            <button ref={approveButton} className="button primary" type="button" onClick={() => setConfirming(true)}>
                 Approve pending pharmacy
             </button>
-        </div>
-        {confirming && <section className="catalog-fieldset" aria-labelledby="confirm-pharmacy-approval">
+        </div>}
+        {confirming && <section className="comparison-confirmation" aria-labelledby="confirm-pharmacy-approval">
             <h3 id="confirm-pharmacy-approval">Confirm pharmacy approval</h3>
             <p>Activate <strong>{application.name_en}</strong> ({application.license_no}) and make it available in public search?</p>
             <Notice error>{error}</Notice>

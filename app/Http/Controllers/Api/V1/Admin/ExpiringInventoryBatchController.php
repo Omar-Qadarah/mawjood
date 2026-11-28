@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api\V1\Admin;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\Api\V1\Admin\ExpiringInventoryBatchResource;
 use App\Models\InventoryBatch;
+use App\Support\AdminTableSort;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
@@ -44,6 +45,12 @@ class ExpiringInventoryBatchController extends Controller
                     ->whereRaw("name_en LIKE ? ESCAPE '!'", [$pattern])
                     ->orWhereRaw("name_ar LIKE ? ESCAPE '!'", [$pattern])));
         }
+
+        $batches = AdminTableSort::apply($request, $batches, [
+            'batch' => 'batch_no', 'expiry' => 'expiry_date', 'on_hand' => 'quantity_on_hand', 'status' => 'status',
+            'pharmacy' => \Illuminate\Support\Facades\DB::raw('(SELECT pharmacies.name_en FROM inventory_items JOIN pharmacies ON pharmacies.id = inventory_items.pharmacy_id WHERE inventory_items.id = inventory_batches.inventory_item_id)'),
+            'medicine' => \Illuminate\Support\Facades\DB::raw('(SELECT medicines.name_en FROM inventory_items JOIN medicines ON medicines.id = inventory_items.medicine_id WHERE inventory_items.id = inventory_batches.inventory_item_id)'),
+        ]);
 
         return ExpiringInventoryBatchResource::collection(
             $batches->orderBy('expiry_date')->orderBy('id')->paginate(10)->withQueryString(),

@@ -1,11 +1,12 @@
-import { Status } from './ui';
+import { TableHead } from './TableSort';
+import { Status, TableAction } from './ui';
 
-const headings = ['Batch', 'Expiry date', 'Pharmacy', 'Medicine', 'On hand', 'Status', 'Details'];
+const columns = [["Batch","batch"],["Expiry date","expiry"],["Pharmacy","pharmacy"],["Medicine","medicine"],["On hand","on_hand"],["Status","status"],["Details"]];
 
-export function ExpiringBatchesTable({ batches, emptyText, onDetails }) {
+export function ExpiringBatchesTable({ batches, emptyText, onDetails, sort, onSort }) {
     return <div className="table-scroll"><table>
         <caption className="sr-only">Batches expiring within 30 days</caption>
-        <thead><tr>{headings.map(heading => <th key={heading} scope="col">{heading}</th>)}</tr></thead>
+        <TableHead columns={columns} sort={sort} onSort={onSort} />
         <tbody>{batches.length ? batches.map(batch => <tr key={batch.id}>
             <td><strong>{batch.batch_no}</strong></td>
             <td>{batch.expiry_date}</td>
@@ -13,8 +14,8 @@ export function ExpiringBatchesTable({ batches, emptyText, onDetails }) {
             <td><strong>{batch.item.medicine.name_en}</strong><small className="table-secondary">{batch.item.medicine.strength_text}</small></td>
             <td>{batch.quantity_on_hand}</td>
             <td><Status status={batch.status} /></td>
-            <td><button className="button small secondary" type="button" onClick={() => onDetails(batch.item)}
-                aria-label={'View stock for ' + batch.batch_no}>View stock</button></td>
-        </tr>) : <tr><td className="empty" colSpan={headings.length}>{emptyText}</td></tr>}</tbody>
+            <td><TableAction icon="view" onClick={() => onDetails(batch.item)}
+                label={'View stock for ' + batch.batch_no} /></td>
+        </tr>) : <tr><td className="empty" colSpan={columns.length}>{emptyText}</td></tr>}</tbody>
     </table></div>;
 }

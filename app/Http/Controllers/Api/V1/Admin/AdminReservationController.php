@@ -12,6 +12,7 @@ use App\Http\Requests\Api\V1\Admin\CompleteReservationRequest;
 use App\Http\Requests\Api\V1\Admin\ReviewReservationRequest;
 use App\Http\Resources\Api\V1\Admin\ReservationResource;
 use App\Models\Reservation;
+use App\Support\AdminTableSort;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
@@ -61,6 +62,13 @@ class AdminReservationController extends Controller
                         ->orWhereRaw("name_ar LIKE ? ESCAPE '!'", [$pattern]));
             });
         }
+
+        $reservations = AdminTableSort::apply($request, $reservations, [
+            'code' => 'code',
+            'pharmacy' => \Illuminate\Support\Facades\DB::raw('(SELECT name_en FROM pharmacies WHERE pharmacies.id = reservations.pharmacy_id)'),
+            'status' => 'status',
+            'deadline' => \Illuminate\Support\Facades\DB::raw("CASE WHEN status = 'pending' OR (status = 'expired' AND pickup_deadline IS NULL) THEN response_deadline WHEN status IN ('confirmed', 'expired') THEN pickup_deadline END"),
+        ]);
 
         return ReservationResource::collection($reservations->latest('id')->paginate(10)->withQueryString());
     }

@@ -12,6 +12,10 @@ export function Icon({ name, size = 19 }) {
         customers: 'M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2m20 0v-2a4 4 0 0 0-3-4M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8zm8-7a4 4 0 0 1 0 7',
         arrow: 'M5 12h14m-6-6 6 6-6 6',
         location: 'M20 10c0 5-8 11-8 11S4 15 4 10a8 8 0 1 1 16 0zM12 12a2 2 0 1 0 0-4 2 2 0 0 0 0 4z',
+        view: 'M2 12s3.6-6 10-6 10 6 10 6-3.6 6-10 6-10-6-10-6zm10-2.5a2.5 2.5 0 1 0 0 5 2.5 2.5 0 0 0 0-5z',
+        edit: 'm14 5 5 5M4 20l5-1 11-11a2.8 2.8 0 0 0-4-4L5 15z',
+        delete: 'M4 7h16M9 7V4h6v3m3 0-1 13H7L6 7m4 3v7m4-7v7',
+        adjust: 'M4 7h8m4 0h4M4 12h2m4 0h10M4 17h10m4 0h2M12 5v4M6 10v4m8 1v4',
         search: 'm20 20-4-4m2-5a7 7 0 1 1-14 0 7 7 0 0 1 14 0z',
         profile: 'M10 3h4l.7 2.6 2 .9 2.5-1.2 2 3.4-1.8 1.9v2.8l1.8 1.9-2 3.4-2.5-1.2-2 .9L14 21h-4l-.7-2.6-2-.9-2.5 1.2-2-3.4 1.8-1.9v-2.8L2.8 8.7l2-3.4 2.5 1.2 2-.9L10 3zM15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0z',
         menu: 'M4 6h16M4 12h16M4 18h16',
@@ -21,6 +25,13 @@ export function Icon({ name, size = 19 }) {
         plus: 'M12 5v14M5 12h14',
     };
     return <svg aria-hidden="true" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.65" strokeLinecap="round" strokeLinejoin="round"><path d={paths[name]} /></svg>;
+}
+
+export function TableAction({ icon, label, title = label, onClick, disabled }) {
+    return <button className={'icon-button table-action' + (icon === 'delete' ? ' table-action-danger' : '')}
+        type="button" aria-label={label} title={title} onClick={onClick} disabled={disabled}>
+        <Icon name={icon} size={17} />
+    </button>;
 }
 
 export function Brand() {

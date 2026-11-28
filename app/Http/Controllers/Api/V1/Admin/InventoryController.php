@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Api\V1\Admin\SaveInventoryListingRequest;
 use App\Http\Resources\Api\V1\Admin\InventoryItemResource;
 use App\Models\InventoryItem;
+use App\Support\AdminTableSort;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\QueryException;
 use Illuminate\Database\UniqueConstraintViolationException;
@@ -57,6 +58,12 @@ class InventoryController extends Controller
                 })->orWhereHas('batches', fn (Builder $batch) => $batch->whereRaw("batch_no LIKE ? ESCAPE '!'", [$pattern]));
             });
         }
+
+        $items = AdminTableSort::apply($request, $items, [
+            'pharmacy' => \Illuminate\Support\Facades\DB::raw('(SELECT name_en FROM pharmacies WHERE pharmacies.id = inventory_items.pharmacy_id)'),
+            'medicine' => \Illuminate\Support\Facades\DB::raw('(SELECT name_en FROM medicines WHERE medicines.id = inventory_items.medicine_id)'),
+            'price' => 'selling_price', 'listing' => 'is_listed', 'available' => 'available_quantity', 'batches' => 'batches_count',
+        ]);
 
         return InventoryItemResource::collection($items->orderBy('pharmacy_id')->orderBy('id')->paginate(10)->withQueryString());
     }

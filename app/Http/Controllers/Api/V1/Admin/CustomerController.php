@@ -7,6 +7,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Api\V1\Admin\SaveCustomerRequest;
 use App\Http\Resources\Api\V1\Admin\CustomerResource;
 use App\Models\User;
+use App\Support\AdminTableSort;
 use Illuminate\Database\QueryException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -35,9 +36,11 @@ class CustomerController extends Controller
                         ->orWhere('email', 'like', "%{$search}%");
                 });
             })
-            ->when(isset($filters['status']), fn ($query) => $query->where('is_active', $filters['status'] === 'active'))
-            ->latest('id')
-            ->paginate(20);
+            ->when(isset($filters['status']), fn ($query) => $query->where('is_active', $filters['status'] === 'active'));
+
+        $customers = AdminTableSort::apply($request, $customers, [
+            'name' => 'name', 'email' => 'email', 'status' => 'is_active', 'members' => 'memberships_count',
+        ])->latest('id')->paginate(20)->withQueryString();
 
         return CustomerResource::collection($customers);
     }

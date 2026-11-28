@@ -1,10 +1,11 @@
+import { sortRows, TableHead, useTableSort } from './TableSort';
 import { useEffect, useState } from 'react';
 import { api } from './api';
 import { IngredientManager } from './IngredientManager';
 import { MedicineEditor } from './MedicineEditor';
 import { useTableLoader } from './useTableLoader';
 import { TableFilters } from './TableFilters';
-import { Details, Field, Modal, Notice, Status } from './ui';
+import { Details, Field, Modal, Notice, Status, TableAction } from './ui';
 
 const endpoint = '/admin/medicines';
 const numberText = (value) => value == null ? '' : String(value).replace(/(\.\d*?[1-9])0+$/, '$1').replace(/\.0+$/, '');
@@ -17,6 +18,7 @@ function unitBasis(component) {
 }
 
 export function MedicineDetails({ summary, onClose }) {
+    const ingredientSort = useTableSort();
     const [medicine, setMedicine] = useState(null);
     const [error, setError] = useState('');
 
@@ -54,8 +56,8 @@ export function MedicineDetails({ summary, onClose }) {
             <h3>Active ingredients</h3>
             <div className="table-scroll">
                 <table>
-                    <thead><tr><th scope="col">Ingredient</th><th scope="col">Strength</th><th scope="col">Per</th></tr></thead>
-                    <tbody>{medicine.ingredients.length ? medicine.ingredients.map((component) => <tr key={component.id}>
+                    <TableHead columns={[["Ingredient","name_en"],["Strength","strength_value"],["Per","per_value"]]} sort={ingredientSort} />
+                    <tbody>{medicine.ingredients.length ? sortRows(medicine.ingredients, ingredientSort, (row, key) => key.endsWith('_value') && row[key] != null ? Number(row[key]) : row[key]).map((component) => <tr key={component.id}>
                         <td><strong>{component.name_en}</strong>{component.name_ar && <small className="table-secondary" lang="ar">{component.name_ar}</small>}</td>
                         <td>{numberText(component.strength_value)} {component.strength_unit}</td>
                         <td>{unitBasis(component)}</td>
@@ -70,6 +72,7 @@ export function MedicineDetails({ summary, onClose }) {
 export function Medicines() {
     const [search, setSearch] = useState('');
     const [status, setStatus] = useState('');
+    const sort = useTableSort('name');
     const [page, setPage] = useState(1);
     const [result, setResult] = useState(null);
     const [loading, setLoading] = useState(true);
@@ -88,7 +91,7 @@ export function Medicines() {
         let current = true;
         const cancel = loadTable(search, async () => {
             try {
-                const params = new URLSearchParams({ page });
+                const params = new URLSearchParams({ page, ...sort.params });
                 if (search.trim()) params.set('search', search.trim());
                 if (status) params.set('catalog_status', status);
                 const catalog = await api(endpoint + '?' + params);
@@ -104,7 +107,7 @@ export function Medicines() {
         });
 
         return () => { current = false; cancel?.(); };
-    }, [loadTable, search, status, page, revision]);
+    }, [loadTable, search, status, page, revision, sort.column, sort.direction]);
 
     function startLoading() {
         setLoading(true);
@@ -177,16 +180,15 @@ export function Medicines() {
             </TableFilters>
             <div className="table-scroll">
                 <table>
-                    <thead><tr>{['Medicine', 'Strength', 'Package', 'Status', 'Actions'].map((heading) =>
-                        <th key={heading} scope="col">{heading}</th>)}</tr></thead>
+                    <TableHead columns={[["Medicine","name"],["Strength","strength"],["Package","package"],["Status","status"],["Actions"]]} sort={sort} onSort={() => changePage(1)} />
                     <tbody>{!loading && !error && rows.length ? rows.map((medicine) => <tr key={medicine.id}>
                         <td><strong>{medicine.name_en}</strong>{medicine.name_ar && <small className="table-secondary" lang="ar">{medicine.name_ar}</small>}
                             <small className="table-secondary">{medicine.manufacturer_name}</small></td>
                         <td>{medicine.strength_text}</td><td>{packageSize(medicine)}</td><td><Status status={medicine.catalog_status} /></td>
                         <td><div className="row-actions">
-                            <button className="button small secondary" type="button" onClick={() => setSelection(medicine)} aria-label={'View ' + medicine.name_en}>View</button>
-                            <button className="button small secondary" type="button" onClick={() => setEditor(medicine)} aria-label={'Edit ' + medicine.name_en}>Edit</button>
-                            <button className="button small danger" type="button" onClick={() => { setDeleteError(''); setDeleting(medicine); }} aria-label={'Delete ' + medicine.name_en}>Delete</button>
+                            <TableAction icon="view" onClick={() => setSelection(medicine)} label={'View ' + medicine.name_en} />
+                            <TableAction icon="edit" onClick={() => setEditor(medicine)} label={'Edit ' + medicine.name_en} />
+                            <TableAction icon="delete" onClick={() => { setDeleteError(''); setDeleting(medicine); }} label={'Delete ' + medicine.name_en} />
                         </div></td>
                     </tr>) : <tr><td className="empty" colSpan="5">{loading ? 'Loading medicines…'
                         : error ? 'Medicine results are unavailable.' : 'No medicines found.'}</td></tr>}</tbody>

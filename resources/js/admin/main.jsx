@@ -1,3 +1,4 @@
+import { sortRows, TableHead, useTableSort } from './TableSort';
 import { useEffect, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import { api, signIn } from './api';
@@ -52,6 +53,7 @@ function Login({ onLogin, message }) {
 }
 
 function Overview({ onDetails, refresh }) {
+    const recentSort = useTableSort('created_at', 'desc');
     const [summary, setSummary] = useState(null);
     const [sites, setSites] = useState(null);
     const [error, setError] = useState('');
@@ -88,8 +90,8 @@ function Overview({ onDetails, refresh }) {
             <JordanMap sites={sites} />
             <section className="panel recent-panel"><header className="panel-header"><div><h2>Recently added pharmacies</h2><p>Latest records in the directory</p></div>
                 <a className="text-button" href="#pharmacies">View all</a></header>
-                <div className="table-scroll"><table><thead><tr><th scope="col">Pharmacy</th><th scope="col">Added</th><th scope="col">Status</th></tr></thead>
-                    <tbody>{summary?.recent_pharmacies.length ? summary.recent_pharmacies.map((pharmacy) => <tr key={pharmacy.id}>
+                <div className="table-scroll"><table><TableHead columns={[["Pharmacy","name_en"],["Added","created_at"],["Status","status"]]} sort={recentSort} />
+                    <tbody>{summary?.recent_pharmacies.length ? sortRows(summary.recent_pharmacies, recentSort, (row, key) => row[key]).map((pharmacy) => <tr key={pharmacy.id}>
                         <td><button className="text-button" onClick={() => onDetails('pharmacies', pharmacy.id)}>{pharmacy.name_en}</button></td>
                         <td>{new Date(pharmacy.created_at).toLocaleDateString()}</td><td><Status status={pharmacy.status} /></td>
                     </tr>) : <tr><td className="empty" colSpan="3">{summary ? 'No pharmacies have been added yet.' : 'Loading pharmacies…'}</td></tr>}</tbody>

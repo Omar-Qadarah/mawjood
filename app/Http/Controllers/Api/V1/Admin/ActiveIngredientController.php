@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Api\V1\Admin\SaveActiveIngredientRequest;
 use App\Http\Resources\Api\V1\Admin\ActiveIngredientResource;
 use App\Models\ActiveIngredient;
+use App\Support\AdminTableSort;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\QueryException;
 use Illuminate\Http\JsonResponse;
@@ -37,6 +38,10 @@ class ActiveIngredientController extends Controller
         } elseif (($filters['usage'] ?? null) === 'unused') {
             $ingredients->doesntHave('medicineIngredients');
         }
+
+        $ingredients = AdminTableSort::apply($request, $ingredients, [
+            'name' => 'name_en', 'atc' => 'atc_code', 'packages' => 'medicine_ingredients_count',
+        ]);
 
         return ActiveIngredientResource::collection($ingredients->orderBy('name_en')->orderBy('id')->paginate(20)->withQueryString());
     }

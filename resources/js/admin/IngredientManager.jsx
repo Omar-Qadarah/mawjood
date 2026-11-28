@@ -1,14 +1,16 @@
+import { TableHead, useTableSort } from './TableSort';
 import { useEffect, useState } from 'react';
 import { api } from './api';
 import { useTableLoader } from './useTableLoader';
 import { TableFilters } from './TableFilters';
-import { Field, Modal, Notice } from './ui';
+import { Field, Modal, Notice, TableAction } from './ui';
 
 const endpoint = '/admin/active-ingredients';
 
 export function IngredientManager({ onClose }) {
     const [search, setSearch] = useState('');
     const [usage, setUsage] = useState('');
+    const sort = useTableSort('name');
     const [page, setPage] = useState(1);
     const [revision, setRevision] = useState(0);
     const [result, setResult] = useState(null);
@@ -23,7 +25,7 @@ export function IngredientManager({ onClose }) {
         let current = true;
         const cancel = loadTable(search, async () => {
             try {
-                const response = await api(endpoint + '?' + new URLSearchParams({ search, usage, page }));
+                const response = await api(endpoint + '?' + new URLSearchParams({ search, usage, page, ...sort.params }));
                 if (current) {
                     if (page > response.meta.last_page) setPage(response.meta.last_page);
                     else setResult(response);
@@ -33,7 +35,7 @@ export function IngredientManager({ onClose }) {
             }
         });
         return () => { current = false; cancel?.(); };
-    }, [loadTable, search, usage, page, revision]);
+    }, [loadTable, search, usage, page, revision, sort.column, sort.direction]);
 
     async function write(method, id, body) {
         setBusy(true);
@@ -94,15 +96,15 @@ export function IngredientManager({ onClose }) {
             <button className="button primary" type="button" onClick={() => { setError(''); setNotice(''); setEditor({}); }}>Add active ingredient</button>
         </TableFilters>}
         <div className="table-scroll"><table>
-            <thead><tr><th scope="col">Ingredient</th><th scope="col">ATC code</th><th scope="col">Packages</th><th scope="col">Actions</th></tr></thead>
+            <TableHead columns={[["Ingredient","name"],["ATC code","atc"],["Packages","packages"],["Actions"]]} sort={sort} onSort={() => setPage(1)} />
             <tbody>{result?.data.length ? result.data.map((ingredient) => <tr key={ingredient.id}>
                 <td><strong>{ingredient.name_en}</strong>{ingredient.name_ar && <small className="table-secondary" lang="ar">{ingredient.name_ar}</small>}</td>
                 <td>{ingredient.atc_code || '—'}</td><td>{ingredient.medicine_ingredients_count}</td>
                 <td><div className="row-actions">
-                    <button className="button secondary small" type="button" aria-label={'Edit ' + ingredient.name_en} disabled={busy} onClick={() => { setError(''); setNotice(''); setDeleting(null); setEditor(ingredient); }}>Edit</button>
-                    <button className="button danger small" type="button" aria-label={'Delete ' + ingredient.name_en} disabled={busy || ingredient.medicine_ingredients_count > 0}
+                    <TableAction icon="edit" label={'Edit ' + ingredient.name_en} disabled={busy} onClick={() => { setError(''); setNotice(''); setDeleting(null); setEditor(ingredient); }} />
+                    <TableAction icon="delete" label={'Delete ' + ingredient.name_en} disabled={busy || ingredient.medicine_ingredients_count > 0}
                         title={ingredient.medicine_ingredients_count > 0 ? 'This ingredient is used by a medicine package.' : undefined}
-                        onClick={() => { setError(''); setNotice(''); setEditor(null); setDeleting(ingredient); }}>Delete</button>
+                        onClick={() => { setError(''); setNotice(''); setEditor(null); setDeleting(ingredient); }} />
                 </div></td>
             </tr>) : <tr><td className="empty" colSpan="4">{result ? 'No ingredients found.' : 'Loading ingredients…'}</td></tr>}</tbody>
         </table></div>

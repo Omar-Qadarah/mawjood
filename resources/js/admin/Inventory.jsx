@@ -1,3 +1,4 @@
+import { sortRows, TableHead, useTableSort } from './TableSort';
 import { useEffect, useState } from 'react';
 import { api } from './api';
 import { ExpiringBatchesTable } from './ExpiringBatchesTable';
@@ -5,12 +6,14 @@ import { InventoryListingForm } from './InventoryListingForm';
 import { StockMovementForm } from './StockMovementForm';
 import { useTableLoader } from './useTableLoader';
 import { TableFilters } from './TableFilters';
-import { Details, Field, Modal, Notice, Status } from './ui';
+import { Details, Field, Modal, Notice, Status, TableAction } from './ui';
 
 const endpoint = '/admin/inventory-items';
 const expiringEndpoint = '/admin/inventory-batches/expiring';
 
 function StockDetails({ item, onClose, onChanged }) {
+    const batchSort = useTableSort('expiry_date');
+    const movementSort = useTableSort();
     const [data, setData] = useState(null);
     const [error, setError] = useState('');
     const [notice, setNotice] = useState('');
@@ -58,20 +61,18 @@ function StockDetails({ item, onClose, onChanged }) {
                 : <button className="button primary" type="button" onClick={() => openForm()}>Receive stock</button>}
             <h3>Stock batches</h3>
             <div className="table-scroll"><table>
-                <thead><tr>{['Batch', 'Expiry date', 'Status', 'On hand', 'Held', 'Available', 'Actions'].map((heading) =>
-                    <th key={heading} scope="col">{heading}</th>)}</tr></thead>
-                <tbody>{data.batches.length ? data.batches.map((batch) => <tr key={batch.id}>
+                <TableHead columns={[["Batch","batch_no"],["Expiry date","expiry_date"],["Status","status"],["On hand","quantity_on_hand"],["Held","quantity_held"],["Available","available_quantity"],["Actions"]]} sort={batchSort} />
+                <tbody>{data.batches.length ? sortRows(data.batches, batchSort, (row, key) => row[key]).map((batch) => <tr key={batch.id}>
                     <td>{batch.batch_no}</td><td>{batch.expiry_date}</td><td><Status status={batch.status} /></td>
                     <td>{batch.quantity_on_hand}</td><td>{batch.quantity_held}</td><td>{batch.available_quantity}</td>
-                    <td><button className="button secondary small" type="button" disabled={busy}
-                        aria-label={'Adjust ' + batch.batch_no} onClick={() => openForm(batch)}>Adjust</button></td>
+                    <td><TableAction icon="adjust" disabled={busy}
+                        label={'Adjust ' + batch.batch_no} onClick={() => openForm(batch)} /></td>
                 </tr>) : <tr><td className="empty" colSpan="7">No stock batches have been recorded.</td></tr>}</tbody>
             </table></div>
             <h3>Recent stock movements</h3>
             <div className="table-scroll"><table>
-                <thead><tr>{['When', 'Batch', 'Movement', 'Change', 'Reason'].map((heading) =>
-                    <th key={heading} scope="col">{heading}</th>)}</tr></thead>
-                <tbody>{data.movements.length ? data.movements.map((movement) => <tr key={movement.id}>
+                <TableHead columns={[["When","created_at"],["Batch","batch_no"],["Movement","type"],["Change","quantity"],["Reason","reason"]]} sort={movementSort} />
+                <tbody>{data.movements.length ? sortRows(data.movements, movementSort, (row, key) => row[key]).map((movement) => <tr key={movement.id}>
                     <td>{new Date(movement.created_at).toLocaleString()}</td><td>{movement.batch_no}</td>
                     <td>{movement.type}</td><td>{movement.quantity > 0 ? '+' : ''}{movement.quantity}</td>
                     <td>{movement.reason || '—'}</td>
@@ -83,6 +84,7 @@ function StockDetails({ item, onClose, onChanged }) {
 }
 
 export function Inventory({ initialStock = '', expiring = false, onClearRoute }) {
+    const sort = useTableSort(expiring ? 'expiry' : undefined);
     const [pharmacies, setPharmacies] = useState(null);
     const [pharmacyError, setPharmacyError] = useState('');
     const [filter, setFilter] = useState({ pharmacy: '', search: '', listing: '', stock: initialStock, page: 1 });
@@ -106,7 +108,7 @@ export function Inventory({ initialStock = '', expiring = false, onClearRoute })
     useEffect(() => {
         let current = true;
         const cancel = loadTable(filter.search, async () => {
-            const params = new URLSearchParams({ page: filter.page });
+            const params = new URLSearchParams({ page: filter.page, ...sort.params });
             if (filter.pharmacy) params.set('pharmacy_id', filter.pharmacy);
             if (filter.listing) params.set('listing', filter.listing);
             if (filter.stock) params.set('stock', filter.stock);
@@ -122,7 +124,7 @@ export function Inventory({ initialStock = '', expiring = false, onClearRoute })
             }
         });
         return () => { current = false; cancel?.(); };
-    }, [expiring, loadTable, filter, revision]);
+    }, [expiring, loadTable, filter, revision, sort.column, sort.direction, sort.params.sort]);
 
     function changeFilter(changes) {
         setLoading(true);
@@ -167,20 +169,19 @@ export function Inventory({ initialStock = '', expiring = false, onClearRoute })
                     <option value="low">Low stock</option>
                 </select></Field>}
             </TableFilters>
-            {expiring ? <ExpiringBatchesTable batches={loading || error ? [] : rows} emptyText={emptyText} onDetails={setSelected} />
+            {expiring ? <ExpiringBatchesTable batches={loading || error ? [] : rows} emptyText={emptyText} onDetails={setSelected} sort={sort} onSort={() => changeFilter({})} />
                 : <div className="table-scroll"><table>
-                <thead><tr>{['Pharmacy', 'Medicine', 'Selling price', 'Listing', 'Available', 'Batches', 'Details'].map((heading) =>
-                    <th key={heading} scope="col">{heading}</th>)}</tr></thead>
+                <TableHead columns={[["Pharmacy","pharmacy"],["Medicine","medicine"],["Selling price","price"],["Listing","listing"],["Available","available"],["Batches","batches"],["Details"]]} sort={sort} onSort={() => changeFilter({})} />
                 <tbody>{!loading && !error && rows.length ? rows.map((item) => <tr key={item.id}>
                     <td><strong>{item.pharmacy.name_en}</strong><small className="table-secondary">{item.pharmacy.city}</small></td>
                     <td><strong>{item.medicine.name_en}</strong><small className="table-secondary">{item.medicine.strength_text}</small></td>
                     <td>{item.selling_price} {item.medicine.currency}</td>
                     <td><Status status={item.is_listed ? 'listed' : 'unlisted'} /></td>
                     <td>{item.available_quantity}</td><td>{item.batches_count}</td>
-                    <td><div className="row-actions"><button className="button small secondary" type="button" onClick={() => setSelected(item)}
-                        aria-label={'View batches for ' + item.medicine.name_en + ' at ' + item.pharmacy.name_en}>View batches</button>
-                        <button className="button small secondary" type="button" onClick={() => setListingForm({ item })}
-                            aria-label={'Edit listing for ' + item.medicine.name_en + ' at ' + item.pharmacy.name_en}>Edit</button>
+                    <td><div className="row-actions"><TableAction icon="inventory" onClick={() => setSelected(item)}
+                        label={'View batches for ' + item.medicine.name_en + ' at ' + item.pharmacy.name_en} />
+                        <TableAction icon="edit" onClick={() => setListingForm({ item })}
+                            label={'Edit listing for ' + item.medicine.name_en + ' at ' + item.pharmacy.name_en} />
                     </div></td>
                 </tr>) : <tr><td className="empty" colSpan="7">{emptyText}</td></tr>}</tbody>
             </table></div>}

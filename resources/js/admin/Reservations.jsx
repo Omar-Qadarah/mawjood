@@ -1,3 +1,4 @@
+import { TableHead, useTableSort } from './TableSort';
 import { useEffect, useState } from 'react';
 import { api, places } from './api';
 import { useTableLoader } from './useTableLoader';
@@ -17,6 +18,7 @@ function formatDeadline(value) {
 }
 
 export function Reservations({ initialStatus = '', initialGovernorate = '', initialDeadline = '', onClearRoute }) {
+    const sort = useTableSort(initialDeadline ? 'deadline' : undefined);
     const [filter, setFilter] = useState({
         search: '',
         status: statuses.includes(initialStatus) ? initialStatus : '',
@@ -32,7 +34,7 @@ export function Reservations({ initialStatus = '', initialGovernorate = '', init
     useEffect(() => {
         let current = true;
         const cancel = loadTable(filter.search, () => {
-            const params = new URLSearchParams({ page: filter.page });
+            const params = new URLSearchParams({ page: filter.page, ...sort.params });
             if (filter.status) params.set('status', filter.status);
             if (filter.deadline) params.set('deadline', filter.deadline);
             if (filter.governorate) params.set('governorate', filter.governorate);
@@ -44,7 +46,7 @@ export function Reservations({ initialStatus = '', initialGovernorate = '', init
                 .finally(() => { if (current) setLoading(false); });
         });
         return () => { current = false; cancel?.(); };
-    }, [loadTable, filter]);
+    }, [loadTable, filter, sort.column, sort.direction, sort.params.sort]);
 
     function changeFilter(changes) {
         setLoading(true);
@@ -83,8 +85,7 @@ export function Reservations({ initialStatus = '', initialGovernorate = '', init
                 </select></Field>
             </TableFilters>
             <div className="table-scroll"><table>
-                <thead><tr>{['Reservation', 'Pharmacy', 'Status', 'Expiry deadline'].map((heading) =>
-                    <th key={heading} scope="col">{heading}</th>)}</tr></thead>
+                <TableHead columns={[["Reservation","code"],["Pharmacy","pharmacy"],["Status","status"],["Expiry deadline","deadline"]]} sort={sort} onSort={() => changeFilter({})} />
                 <tbody>{!loading && !error && rows.length ? rows.map((reservation) => {
                     const isResponseDeadline = reservation.status === 'pending' ||
                         (reservation.status === 'expired' && !reservation.pickup_deadline);

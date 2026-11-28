@@ -9,6 +9,7 @@ use App\Http\Requests\Api\V1\Admin\StorePharmacyRequest;
 use App\Http\Requests\Api\V1\Admin\UpdatePharmacyRequest;
 use App\Http\Resources\Api\V1\Admin\AdminPharmacyResource;
 use App\Models\Pharmacy;
+use App\Support\AdminTableSort;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -44,10 +45,11 @@ class AdminPharmacyController extends Controller
             })
             ->when($filters['governorate'] ?? null, fn ($query, string $governorate) => $query->where('governorate', $governorate))
             ->when($filters['city'] ?? null, fn($query, string $city) => $query->where('city', $city))
-            ->when($filters['status'] ?? null, fn($query, string $status) => $query->where('status', $status))
-            ->latest()
-            ->paginate(20)
-            ->withQueryString();
+            ->when($filters['status'] ?? null, fn($query, string $status) => $query->where('status', $status));
+
+        $pharmacies = AdminTableSort::apply($request, $pharmacies, [
+            'name' => 'name_en', 'license' => 'license_no', 'city' => 'city', 'status' => 'status', 'members' => 'memberships_count',
+        ])->latest()->orderByDesc('id')->paginate(20)->withQueryString();
 
         return AdminPharmacyResource::collection($pharmacies);
     }

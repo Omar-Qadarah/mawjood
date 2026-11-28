@@ -1,10 +1,11 @@
+import { TableHead, useTableSort } from './TableSort';
 import { PharmacyReviewSummary } from './PharmacyReviewSummary';
 import { useEffect, useState } from 'react';
 import { api, places } from './api';
 import { useTableLoader } from './useTableLoader';
 import { TableFilters } from './TableFilters';
 import { PharmacyForm, weekdays } from './PharmacyForm';
-import { Details, Field, Icon, Modal, Notice, Status } from './ui';
+import { Details, Field, Icon, Modal, Notice, Status, TableAction } from './ui';
 
 function CustomerForm({ customer, onClose, onSave }) {
     const [error, setError] = useState('');
@@ -62,8 +63,9 @@ export function RecordDetails({ entity, record, onClose, onApproved }) {
     const pending = pharmacy && record.status === 'pending';
 
     return <Modal title={pharmacy ? record.name_en : record.name} onClose={onClose} wide={pending}>
-        <Details values={values} />
-        {pending && <PharmacyReviewSummary key={record.id} application={record} onApproved={onApproved} />}
+        {pending ? <PharmacyReviewSummary key={record.id} application={record} onApproved={onApproved}>
+            <Details values={values} />
+        </PharmacyReviewSummary> : <Details values={values} />}
         <footer className="form-actions"><button className="button secondary" type="button" onClick={onClose}>Done</button></footer>
     </Modal>;
 }
@@ -79,6 +81,7 @@ export function Directory({ entity, initialStatus = '', initialGovernorate = '',
         governorate: pharmacy && Object.hasOwn(places, initialGovernorate) ? initialGovernorate : '',
         city: '',
     });
+    const sort = useTableSort();
     const [page, setPage] = useState(1);
     const [revision, setRevision] = useState(0);
     const [results, setResults] = useState(null);
@@ -91,7 +94,7 @@ export function Directory({ entity, initialStatus = '', initialGovernorate = '',
     useEffect(() => {
         let current = true;
         const cancel = loadTable(filters.search, async () => {
-            const query = new URLSearchParams({ page });
+            const query = new URLSearchParams({ page, ...sort.params });
             Object.entries(filters).forEach(([key, value]) => { if (value.trim()) query.set(key, value.trim()); });
             try {
                 const response = await api(path + '?' + query);
@@ -105,7 +108,7 @@ export function Directory({ entity, initialStatus = '', initialGovernorate = '',
         });
 
         return () => { current = false; cancel?.(); };
-    }, [loadTable, path, page, filters, revision, refresh]);
+    }, [loadTable, path, page, filters, revision, refresh, sort.column, sort.direction]);
 
     function filter(key, value) {
         setPage(1);
@@ -164,7 +167,8 @@ export function Directory({ entity, initialStatus = '', initialGovernorate = '',
             </TableFilters>
             <div className="table-scroll">
                 <table>
-                    <thead><tr>{(pharmacy ? ['Pharmacy', 'License', 'City', 'Status', 'Members', 'Actions'] : ['Customer', 'Email', 'Status', 'Memberships', 'Actions']).map((column) => <th key={column} scope="col">{column}</th>)}</tr></thead>
+                    <TableHead columns={pharmacy ? [["Pharmacy","name"],["License","license"],["City","city"],["Status","status"],["Members","members"],["Actions"]] :
+                        [["Customer","name"],["Email","email"],["Status","status"],["Memberships","members"],["Actions"]]} sort={sort} onSort={() => setPage(1)} />
                     <tbody>
                         {results?.data.length ? results.data.map((entry) => <tr key={entry.id}>
                             <td><strong>{pharmacy ? entry.name_en : entry.name}</strong>{pharmacy && <small className="table-secondary" lang="ar">{entry.name_ar}</small>}</td>
@@ -173,9 +177,11 @@ export function Directory({ entity, initialStatus = '', initialGovernorate = '',
                             <td><Status status={pharmacy ? entry.status : entry.is_active ? 'active' : 'inactive'} /></td>
                             <td>{entry.memberships_count}</td>
                             <td><div className="row-actions">
-                                <button className="button small secondary" onClick={() => onDetails(entity, entry.id)}>View</button>
-                                <button className="button small secondary" onClick={() => setEditor(entry)}>Edit</button>
-                                <button className="button small danger" onClick={() => setDeletion(entry)}>Delete</button>
+                                <TableAction icon={pharmacy && entry.status === 'pending' ? 'reservations' : 'view'}
+                                    label={pharmacy && entry.status === 'pending' ? 'Review application for ' + entry.name_en : 'View ' + (pharmacy ? entry.name_en : entry.name)}
+                                    onClick={() => onDetails(entity, entry.id)} />
+                                <TableAction icon="edit" label={'Edit ' + (pharmacy ? entry.name_en : entry.name)} onClick={() => setEditor(entry)} />
+                                <TableAction icon="delete" label={'Delete ' + (pharmacy ? entry.name_en : entry.name)} onClick={() => setDeletion(entry)} />
                             </div></td>
                         </tr>) : <tr><td className="empty" colSpan={pharmacy ? 6 : 5}>{results ? 'No matching ' + entity + '.' : 'Loading ' + entity + '…'}</td></tr>}
                     </tbody>

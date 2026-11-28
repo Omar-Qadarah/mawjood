@@ -102,6 +102,22 @@ class PharmacyApplicationSummaryTest extends TestCase
         $this->assertSame(PharmacyStatus::Suspended, $suspended->fresh()->status);
     }
 
+    public function test_pharmacy_sort_applies_before_pagination_and_rejects_unknown_columns(): void
+    {
+        foreach (range(1, 21) as $number) {
+            $this->pharmacy(sprintf('SORT-%02d', $number));
+        }
+
+        $this->actingAs(User::factory()->create(['platform_role' => PlatformRole::Admin, 'is_active' => true]), 'web');
+        $path = '/api/v1/admin/pharmacies?search=SORT-';
+
+        $this->getJson($path.'&sort=license&direction=asc&page=2')->assertOk()
+            ->assertJsonPath('meta.total', 21)->assertJsonPath('data.0.license_no', 'SORT-21');
+        $this->getJson($path.'&sort=license&direction=desc&page=2')->assertOk()
+            ->assertJsonPath('data.0.license_no', 'SORT-01');
+        $this->getJson($path.'&sort=unknown')->assertUnprocessable()->assertJsonValidationErrors('sort');
+    }
+
     private function pharmacy(string $license): Pharmacy
     {
         return Pharmacy::create([

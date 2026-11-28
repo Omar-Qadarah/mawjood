@@ -380,6 +380,29 @@ p {
     color: var(--muted);
     margin: 0 11px 7px;
 }
+
+.table-sort {
+    display: inline-flex;
+    justify-content: center;
+    align-items: center;
+    gap: 4px;
+    max-width: 100%;
+    padding: 2px;
+    border: 0;
+    border-radius: 4px;
+    background: transparent;
+    color: inherit;
+    font: inherit;
+    white-space: inherit;
+}
+.table-sort:hover,
+th[aria-sort] .table-sort {
+    color: var(--accent);
+}
+.table-sort span {
+    font-size: 0.85rem;
+    line-height: 1;
+}
 .table-scroll {
     position: relative;
     overflow-x: auto;
@@ -387,7 +410,7 @@ p {
 table {
     width: 100%;
     border-collapse: collapse;
-    text-align: left;
+    text-align: center;
     font-size: 0.84rem;
 }
 th,
@@ -454,6 +477,25 @@ td strong,
     display: flex;
     align-items: center;
     gap: 7px;
+}
+td .row-actions {
+    justify-content: center;
+}
+.table-action {
+    border: 1px solid var(--line);
+    background: var(--surface);
+}
+.table-action-danger {
+    color: #a33d45;
+}
+.table-action-danger:hover {
+    background: #fff0f0;
+}
+@media (pointer: coarse) {
+    .table-action {
+        width: 44px;
+        height: 44px;
+    }
 }
 .pagination {
     justify-content: center;
@@ -974,48 +1016,170 @@ td strong,
     }
 }
 
-.pharmacy-comparison {
-    margin-top: 12px;
+.application-review {
+    display: grid;
+    gap: 14px;
+    margin-bottom: 14px;
 }
+.application-review h3 {
+    margin: 0;
+    font-size: 0.95rem;
+}
+.review-overview {
+    display: grid;
+    gap: 8px;
+    padding: 12px;
+    border: 1px solid #d6e7e0;
+    border-radius: 10px;
+    background: #f0f7f4;
+}
+.review-overview-header,
 .pharmacy-comparison-header {
     display: flex;
     align-items: center;
-    justify-content: space-between;
     flex-wrap: wrap;
-    gap: 6px;
-    margin-bottom: 8px;
+    gap: 8px;
+}
+.review-overview-header .button,
+.pharmacy-comparison-header .button {
+    margin-inline-start: auto;
+}
+.review-overview-icon {
+    display: grid;
+    place-items: center;
+    width: 28px;
+    height: 28px;
+    border-radius: 7px;
+    background: var(--accent-soft);
+    color: var(--accent);
+}
+.review-overview p {
+    font-size: 0.84rem;
+    line-height: 1.5;
+}
+.review-overview .notice {
+    margin: 0;
+}
+.review-matches ul {
+    margin: 7px 0 0;
+    padding: 0;
+    list-style: none;
+    border: 1px solid var(--line);
+    border-radius: 9px;
+}
+.review-matches li + li {
+    border-top: 1px solid var(--line);
+}
+.review-match {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto auto;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+    padding: 8px 10px;
+    border: 0;
+    border-radius: 8px;
+    background: transparent;
+    color: var(--ink);
+    text-align: start;
+}
+.review-match:hover {
+    background: #f3f8f5;
+}
+.review-match-name {
+    display: grid;
+    gap: 3px;
+    overflow-wrap: anywhere;
+    font-size: 0.84rem;
+}
+.review-match-name small {
+    color: var(--muted);
+    font-size: 0.71rem;
+}
+.review-match-reason,
+.comparison-badge {
+    width: fit-content;
+    padding: 2px 6px;
+    border-radius: 5px;
+    background: #e2f1ec;
+    color: #155447;
+    font-size: 0.71rem;
+    font-weight: 700;
+}
+.review-match-action {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    color: var(--accent);
+    font-size: 0.78rem;
+    font-weight: 700;
+}
+.pharmacy-comparison {
+    border: 1px solid var(--line);
+    border-radius: 10px;
+}
+.pharmacy-comparison-header,
+.comparison-actions {
+    padding: 10px 12px;
 }
 .pharmacy-comparison table {
     table-layout: fixed;
 }
 .pharmacy-comparison th:first-child {
-    width: 24%;
+    width: 22%;
 }
 .pharmacy-comparison th,
 .pharmacy-comparison td {
     white-space: normal;
     overflow-wrap: anywhere;
 }
+.pharmacy-comparison tbody th {
+    background: #fff;
+}
 .pharmacy-comparison .comparison-match > * {
-    background: #e6f4ee;
+    background: #f1f8f4;
+}
+.comparison-match th {
+    box-shadow: inset 3px 0 #60a895;
 }
 .comparison-badge {
-    display: block;
-    width: fit-content;
-    margin-top: 4px;
-    padding: 0 5px;
-    border-radius: 5px;
-    background: #cfe9de;
-    color: #155447;
-    font-size: 0.68rem;
-    font-weight: 750;
+    display: inline-block;
+    margin: 0 0 0 5px;
+}
+.comparison-actions {
+    display: flex;
+    justify-content: flex-end;
+    border-top: 1px solid var(--line);
+}
+.comparison-confirmation {
+    margin: 0;
+    padding: 10px 12px;
+    border-top: 1px solid var(--line);
+    background: #fff8eb;
+    border-radius: 0 0 9px 9px;
+}
+.comparison-confirmation p {
+    margin-top: 5px;
+    font-size: 0.84rem;
 }
 @media (max-width: 600px) {
+    .review-match {
+        grid-template-columns: minmax(0, 1fr) auto;
+        row-gap: 4px;
+    }
+    .review-match-name {
+        grid-column: 1 / -1;
+    }
     .pharmacy-comparison th,
     .pharmacy-comparison td {
-        padding: 6px 4px;
+        padding: 6px 5px;
+    }
+    .comparison-badge {
+        display: block;
+        margin: 3px 0 0;
     }
 }
+
 .overview-grid > .status-panel {
     display: grid;
     grid-template-rows: auto 1fr;
